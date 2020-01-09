@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>orion</title>
+    <script src='orion.js'></script>
+</head>
+<body style="user-select:none; -moz-user-select:none; -webkit-user-select:none; -ms-user-select:none;">
+    orion 0.2.10
+    <hr/>
+    Save Data(<span id='recent_range'></span>):<br/>
+    <select id='select_recent' style='width:300px;' autocomplete='off' ></select>
+    <input id='recent_backward' type='button' value='<<'/>
+    <input id='recent_forward' type='button' value='>>' />
+    <input id='recent_load' type='button' value='Load' />
+    <hr/>
+    <input id='wave_play' type='button' style='width:60px;' value='Play' />
+    <input id='wave_save' type='button' style='width:60px;' value='Save' />
+    <input id='wave_file' type='file' disabled='disabled' accept='audio/*' autocomplete='off' />
+    <br/>
+    Volume:<input id='slider_volume' type='range' style='width:200px;' min='0' max='1' step='0.01' autocomplete='off' />
+    <span id='text_volume'></span>
+	<hr/>
+	MIDI Message:<span id='text_midi_msg'>0x00 0x00 0x00</span><br/>
+    <hr/>
+    <canvas id='work_view' style='cursor:default;'></canvas>
+    <br/>
+    Ctrl1:
+    <input id='button_ctrl1' type='button' value='Setting' style='width:60px;' />
+	<input id='button_learn1' type='button' value='Learn' style='width:60px;' />
+    <input id='slider_ctrl1' type='range' style='width:200px;' min='0' max='1' step='0.01' value='0.5' autocomplete='off' />
+    <span id='text_ctrl1'></span>
+    <br/>
+    Ctrl2:
+    <input id='button_ctrl2' type='button' value='Setting' style='width:60px;' />
+	<input id='button_learn2' type='button' value='Learn' style='width:60px;' />
+    <input id='slider_ctrl2' type='range' style='width:200px;' min='0' max='1' step='0.01' value='0.5' autocomplete='off' />
+    <span id='text_ctrl2'></span>
+    <br/>
+    Ctrl3:
+    <input id='button_ctrl3' type='button' value='Setting' style='width:60px;' />
+	<input id='button_learn3' type='button' value='Learn' style='width:60px;' />
+    <input id='slider_ctrl3' type='range' style='width:200px;' min='0' max='1' step='0.01' value='0.5' autocomplete='off' />
+    <span id='text_ctrl3'></span>
+    <br/>
+    <br/>
+    <input id='button_commit' type='button' style='width:60px;' value='Commit' />
+    <input id='button_revert' type='button' style='width:60px;' value='Revert' />
+    <input id='button_clear' type='button' style='width:60px;' value='Clear' />
+    <hr/>
+</body>
+</html>
