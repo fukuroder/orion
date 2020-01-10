@@ -7,7 +7,7 @@ import js.html.Image;
  */
 class AddModule extends ModuleBase {
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable
@@ -19,7 +19,7 @@ class AddModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.output_arr[0].value1 = this.input_arr[0].value1 + this.input_arr[1].value1;

@@ -7,7 +7,7 @@ import js.html.Image;
  */
 class SampleRateModule extends ModuleBase {
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable

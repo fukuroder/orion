@@ -18,7 +18,7 @@ class RecentLoader {
     var recent_offset:Int = 0;
 
     /**
-     * コンストラクタ.
+     * constructor.
      */
     public function new () { }
 

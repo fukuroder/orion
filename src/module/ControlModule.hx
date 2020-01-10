@@ -17,7 +17,7 @@ class ControlModule extends ModuleBase {
     public var idx:Int;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable
@@ -41,7 +41,7 @@ class ControlModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.output_arr[0].value1 = this.value;

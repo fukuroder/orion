@@ -17,7 +17,7 @@ class OutputModule extends ModuleBase {
     public var value2:Float;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable
@@ -41,7 +41,7 @@ class OutputModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.value1 = this.input_arr[0].value1;

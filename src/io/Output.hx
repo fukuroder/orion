@@ -22,7 +22,7 @@ class Output extends IOBase{
     public var quick_bus_next_input_arr:Array<Input>;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param module
      * @param index
      */

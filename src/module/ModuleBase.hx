@@ -59,7 +59,7 @@ class ModuleBase {
     public var image:Image;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param name
      * @param x
      * @param y

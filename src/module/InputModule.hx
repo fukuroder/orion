@@ -17,7 +17,7 @@ class InputModule extends ModuleBase {
     public var value2:Float;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x X座標
      * @param y Y座標
      * @param removable 削除可能か？
@@ -40,7 +40,7 @@ class InputModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.output_arr[0].value1 = this.value1;

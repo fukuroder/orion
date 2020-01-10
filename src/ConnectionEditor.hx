@@ -99,7 +99,7 @@ class ConnectionEditor{
     var tol:Int = 10; // 移動？
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param canvas
      */
     public function new(canvas:CanvasElement){

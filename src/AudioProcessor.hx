@@ -45,7 +45,7 @@ class AudioProcessor{
     var canvas:ConnectionEditor;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param audio_context
      * @param abnormal_end
      */

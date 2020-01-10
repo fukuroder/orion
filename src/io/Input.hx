@@ -27,7 +27,7 @@ class Input extends IOBase {
     public var stream_updated:Bool;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param module
      * @param index
      */

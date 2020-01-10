@@ -27,7 +27,7 @@ class IOBase{
     public var index:Int;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param module
      * @param index
      */

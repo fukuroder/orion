@@ -7,7 +7,7 @@ import js.html.Image;
  */
 class DelayModule extends ModuleBase {
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable
@@ -20,7 +20,7 @@ class DelayModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.output_arr[0].value1 = this.input_arr[0].value1 + 1.0e-100; // Denomal cancel

@@ -7,7 +7,7 @@ import js.html.Image;
  */
 class CosModule extends ModuleBase {
     /**
-     * コンストラクタ.
+     * constructor.
      * @param x
      * @param y
      * @param removable
@@ -19,7 +19,7 @@ class CosModule extends ModuleBase {
     }
 
     /**
-     * 評価.
+     * evaluate.
      */
     override function evaluate():Void{
         this.output_arr[0].value1 = Math.cos(this.input_arr[0].value1);

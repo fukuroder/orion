@@ -19,7 +19,7 @@ class AudioFileReader{
     var decodeError:Dynamic;
 
     /**
-     * コンストラクタ.
+     * constructor.
      * @param decodeFinished デコード完了時の処理
      * @param decodeError デコード失敗時の処理
      */
