@@ -24,10 +24,10 @@ class AudioProcessor{
      */
     var pos:Int = 0;
 
-	/**
+    /**
      * ScriptProcessor.
      */
-	var script_processor:ScriptProcessorNode;
+    var script_processor:ScriptProcessorNode;
 
     /**
      * 音量.
@@ -142,8 +142,8 @@ class AudioProcessor{
      * @param decoded_buffer
      */
     public function start(decoded_buffer:AudioBuffer) {
-		// バッファを設定
-		this.decoded_buffer = decoded_buffer;
+        // バッファを設定
+        this.decoded_buffer = decoded_buffer;
 
         // 再生位置をリセット
         this.pos = 0;

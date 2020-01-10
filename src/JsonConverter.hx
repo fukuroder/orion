@@ -1,5 +1,4 @@
 package ;
-import js.html.Element;
 import js.html.InputElement;
 import io.Input;
 import module.ControlModule;

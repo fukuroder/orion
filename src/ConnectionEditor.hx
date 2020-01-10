@@ -50,25 +50,25 @@ class ConnectionEditor{
      */
     public var end:Input;
 
-	/**
+    /**
      * TODO.
      */
-	private var canvas:CanvasElement;
+    private var canvas:CanvasElement;
 
     /**
      * TODO.
      */
     private var rendering_context:CanvasRenderingContext2D;
 
-	/**
+    /**
      * TODO.
      */
-	private var canvas_height:Int;
+    private var canvas_height:Int;
 
-	/**
+    /**
      * TODO.
      */
-	private var canvae_width:Int;
+    private var canvae_width:Int;
 
     /**
      * TODO.
@@ -104,9 +104,9 @@ class ConnectionEditor{
      */
     public function new(canvas:CanvasElement){
         this.canvas = canvas;
-		this.rendering_context = canvas.getContext2d();
-		this.canvas_height = canvas.height;
-		this.canvae_width = canvas.width;
+        this.rendering_context = canvas.getContext2d();
+        this.canvas_height = canvas.height;
+        this.canvae_width = canvas.width;
     }
 
     /**
@@ -199,7 +199,7 @@ class ConnectionEditor{
         this.rendering_context.stroke();
     }
 
-	/**
+    /**
      * 直線描画.
      * @param x1
      * @param y1
@@ -216,7 +216,7 @@ class ConnectionEditor{
         this.rendering_context.stroke();
     }
 
-	/**
+    /**
      * 文字列描画.
      * @param ctx
      * @param align
@@ -254,7 +254,7 @@ class ConnectionEditor{
         }
     }
 
-	/**
+    /**
      * 接続中のケーブルを描画
      * @param module_arr
      */
@@ -283,12 +283,12 @@ class ConnectionEditor{
         }
     }
 
-	/**
-	 *
-	 * @param	placed_modules
-	 * @param	original_modules
-	 */
-	public function redraw():Void {
+    /**
+     *
+     * @param    placed_modules
+     * @param    original_modules
+     */
+    public function redraw():Void {
         // 背景描画
         this.drawBack();
 
@@ -298,7 +298,7 @@ class ConnectionEditor{
 
         // 接続中ケーブルを描画
         this.redraw_cables(_module_arr);
-	}
+    }
 
     /**
      * 二乗距離.

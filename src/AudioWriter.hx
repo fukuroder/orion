@@ -25,7 +25,7 @@ class AudioWriter{
      */
     public function new(canvas:ConnectionEditor, decoded_buffer:AudioBuffer ) {
         this.canvas = canvas;
-		this.decoded_buffer = decoded_buffer;
+        this.decoded_buffer = decoded_buffer;
     }
 
     /**

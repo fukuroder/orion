@@ -64,11 +64,11 @@ class Main {
      * TODO:
      */
     static var _button_commit:Element;
-	
-	/**
-	 * 
-	 */
-	static var _text_midi_msg:Element;
+    
+    /**
+     * 
+     */
+    static var _text_midi_msg:Element;
 
     /**
      * TODO:
@@ -84,16 +84,16 @@ class Main {
      * TODO:
      */
     static var _button_ctrl3:Element;
-	
-	
+    
+    
     static var _button_learn1:Element;
     static var _button_learn2:Element;
     static var _button_learn3:Element;
-	static var _current_midi_msg:Int;
-	static var _midi_learn1:Int = -1;
-	static var _midi_learn2:Int = -1;
-	static var _midi_learn3:Int = -1;
-	
+    static var _current_midi_msg:Int;
+    static var _midi_learn1:Int = -1;
+    static var _midi_learn2:Int = -1;
+    static var _midi_learn3:Int = -1;
+    
 
     /**
      * TODO:
@@ -185,9 +185,9 @@ class Main {
      */
     static var _work_view:CanvasElement;
 
-	/**
-	 * TODO:
-	 */
+    /**
+     * TODO:
+     */
     static var _canvas:ConnectionEditor;
 
     /**
@@ -213,10 +213,10 @@ class Main {
     /**
      * メイン.
      */
-	static function main():Void {
+    static function main():Void {
         Browser.window.onload = windowLoaded;
         Browser.window.onunload = function(e) { };
-	}
+    }
 
     /**
      * 二乗距離.
@@ -663,7 +663,7 @@ class Main {
 
         if( _canvas.is_cable_dragging() ){
             // 編集中ケーブルを描画
-			var p = _canvas.get_cable_point();
+            var p = _canvas.get_cable_point();
             _canvas.drawLine(p.x, p.y, offset.x, offset.y);
         }
     }
@@ -1028,7 +1028,7 @@ class Main {
         // Element取得
         _button_clear = Browser.document.getElementById('button_clear');
         _button_commit = Browser.document.getElementById('button_commit');
-		_text_midi_msg = Browser.document.getElementById('text_midi_msg');
+        _text_midi_msg = Browser.document.getElementById('text_midi_msg');
         _button_ctrl1 = Browser.document.getElementById('button_ctrl1');
         _button_ctrl2 = Browser.document.getElementById('button_ctrl2');
         _button_ctrl3 = Browser.document.getElementById('button_ctrl3');
@@ -1056,8 +1056,8 @@ class Main {
 
         _wave_play.setAttribute('disabled', 'disabled');
         _wave_save.setAttribute('disabled', 'disabled');
-		
-		//------
+        
+        //------
         // MIDI
         //------
         var navigator:Dynamic = Browser.window.navigator;
@@ -1068,7 +1068,7 @@ class Main {
             Browser.alert("navigator.requestMIDIAccess == null");
         }
 
-		// view
+        // view
         _work_view.setAttribute( 'width', Std.string(800) );
         _work_view.setAttribute( 'height', Std.string(400) );
         _canvas = new ConnectionEditor(_work_view);
@@ -1174,26 +1174,26 @@ class Main {
                 Modified();
             }
         });
-		
-		_button_learn1.addEventListener('click',()->{
-			if ( _current_midi_msg >= 0)
-			{
-				_midi_learn1 = _current_midi_msg;
-			}
+        
+        _button_learn1.addEventListener('click',()->{
+            if ( _current_midi_msg >= 0)
+            {
+                _midi_learn1 = _current_midi_msg;
+            }
         });
-		
-		_button_learn2.addEventListener('click', ()->{
-			if ( _current_midi_msg >= 0)
-			{
-				_midi_learn2 = _current_midi_msg;
-			}
+        
+        _button_learn2.addEventListener('click', ()->{
+            if ( _current_midi_msg >= 0)
+            {
+                _midi_learn2 = _current_midi_msg;
+            }
         });
-		
-		_button_learn3.addEventListener('click', ()->{
-			if ( _current_midi_msg >= 0)
-			{
-				_midi_learn3 = _current_midi_msg;
-			}
+        
+        _button_learn3.addEventListener('click', ()->{
+            if ( _current_midi_msg >= 0)
+            {
+                _midi_learn3 = _current_midi_msg;
+            }
         });
 
         //-----------------------------
@@ -1491,58 +1491,58 @@ class Main {
         // 最近のコミット情報を取得する
         _recent_backward.click();
     }
-	
+    
     /**
      *　MIDI初期化
      * @param m
      */
     static function onMIDIInit(m:Dynamic):Void {
-		var it = m.inputs.values();
-		var o = it.next();
-		while ( o.done == false )
-		{
-			Browser.document.getElementById('text_midi_in_device').textContent = o.value.name;
-			o.value.onmidimessage = onmidimessage;
-			o = it.next();
-		}
-	}
-	
-	/**
+        var it = m.inputs.values();
+        var o = it.next();
+        while ( o.done == false )
+        {
+            Browser.document.getElementById('text_midi_in_device').textContent = o.value.name;
+            o.value.onmidimessage = onmidimessage;
+            o = it.next();
+        }
+    }
+    
+    /**
      *　MIDIメッセージ受信時の処理
      * @param e
      */
     static function onmidimessage(e:Dynamic) {
-		_text_midi_msg.textContent =
+        _text_midi_msg.textContent =
             '0x' + e.data[0].toString(16)
             + ' 0x' + e.data[1].toString(16)
             + ' 0x' + e.data[2].toString(16);
-			
-		_current_midi_msg = e.data[1];
-		
-		var t : Float = e.data[2] / 127.0;
-		if ( _midi_learn1 == _current_midi_msg)
-		{
-			//更新
-			var min1:Float = Std.parseFloat(_slider_ctrl1.getAttribute('min'));
-			var max1:Float = Std.parseFloat(_slider_ctrl1.getAttribute('max'));
-			_slider_ctrl1.value =  Std.string( min1 * (1 - t) + max1 * t );
-			_slider_ctrl1.dispatchEvent(new Event('input'));
-		}
-		if ( _midi_learn2 == _current_midi_msg)
-		{
-			//更新
-			var min2:Float = Std.parseFloat(_slider_ctrl2.getAttribute('min'));
-			var max2:Float = Std.parseFloat(_slider_ctrl2.getAttribute('max'));
-			_slider_ctrl2.value = Std.string( min2 * (1 - t) + max2 * t );
-			_slider_ctrl2.dispatchEvent(new Event('input'));
-		}
-		if ( _midi_learn3 == _current_midi_msg)
-		{
-			//更新
-			var min3:Float = Std.parseFloat(_slider_ctrl3.getAttribute('min'));
-			var max3:Float = Std.parseFloat(_slider_ctrl3.getAttribute('max'));
-			_slider_ctrl3.value = Std.string( min3 * (1 - t) + max3 * t );
-			_slider_ctrl3.dispatchEvent(new Event('input'));
-		}
+            
+        _current_midi_msg = e.data[1];
+        
+        var t : Float = e.data[2] / 127.0;
+        if ( _midi_learn1 == _current_midi_msg)
+        {
+            //更新
+            var min1:Float = Std.parseFloat(_slider_ctrl1.getAttribute('min'));
+            var max1:Float = Std.parseFloat(_slider_ctrl1.getAttribute('max'));
+            _slider_ctrl1.value =  Std.string( min1 * (1 - t) + max1 * t );
+            _slider_ctrl1.dispatchEvent(new Event('input'));
+        }
+        if ( _midi_learn2 == _current_midi_msg)
+        {
+            //更新
+            var min2:Float = Std.parseFloat(_slider_ctrl2.getAttribute('min'));
+            var max2:Float = Std.parseFloat(_slider_ctrl2.getAttribute('max'));
+            _slider_ctrl2.value = Std.string( min2 * (1 - t) + max2 * t );
+            _slider_ctrl2.dispatchEvent(new Event('input'));
+        }
+        if ( _midi_learn3 == _current_midi_msg)
+        {
+            //更新
+            var min3:Float = Std.parseFloat(_slider_ctrl3.getAttribute('min'));
+            var max3:Float = Std.parseFloat(_slider_ctrl3.getAttribute('max'));
+            _slider_ctrl3.value = Std.string( min3 * (1 - t) + max3 * t );
+            _slider_ctrl3.dispatchEvent(new Event('input'));
+        }
     }
 }
