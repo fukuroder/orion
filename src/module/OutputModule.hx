@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * output_module.
+ * output module.
  * @author fukuroda
  */
 class OutputModule extends ModuleBase {

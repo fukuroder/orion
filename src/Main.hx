@@ -1518,7 +1518,7 @@ class Main {
     }
     
     /**
-     *　MIDI初期化
+     * MIDI初期化
      * @param m
      */
     static function onMIDIInit(m:Dynamic):Void {
@@ -1533,7 +1533,7 @@ class Main {
     }
     
     /**
-     *　MIDIメッセージ受信時の処理
+     * MIDIメッセージ受信時の処理
      * @param e
      */
     static function onmidimessage(e:Dynamic) {

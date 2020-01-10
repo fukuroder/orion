@@ -2,12 +2,12 @@ package module;
 import js.html.Image;
 
 /**
- * tan_module.
+ * tan module.
  * @author fukuroda
  */
 class TanModule extends ModuleBase {
     /**
-     *　constructor.
+     * constructor.
      * @param x
      * @param y
      * @param removable

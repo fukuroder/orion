@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * input_module.
+ * input module.
  * @author fukuroda
  */
 class InputModule extends ModuleBase {
@@ -12,7 +12,7 @@ class InputModule extends ModuleBase {
     public var value1:Float;
 
     /**
-     *　値2.
+     * 値2.
      */
     public var value2:Float;
 
@@ -48,7 +48,7 @@ class InputModule extends ModuleBase {
     }
 
     /**
-     *　定数か？
+     * 定数か？
      * @return
      */
     override function is_constant():Bool{

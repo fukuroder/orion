@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * sqrt_module.
+ * sqrt module.
  * @author fukuroda
  */
 class SqrtModule extends ModuleBase {

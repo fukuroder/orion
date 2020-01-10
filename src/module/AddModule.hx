@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * add_module.
+ * add module.
  * @author fukuroda
  */
 class AddModule extends ModuleBase {

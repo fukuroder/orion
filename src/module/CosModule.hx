@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * cos_module.
+ * cos module.
  * @author fukuroda
  */
 class CosModule extends ModuleBase {

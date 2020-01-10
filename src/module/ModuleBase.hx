@@ -4,7 +4,7 @@ import io.Output;
 import js.html.Image;
 
 /**
- * モジュール基本クラス.
+ * module base.
  * @author fukuroda
  */
 class ModuleBase {

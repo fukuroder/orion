@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * control_module.
+ * control module.
  * @author fukuroda
  */
 class ControlModule extends ModuleBase {

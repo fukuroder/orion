@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * divide_module.
+ * divide module.
  * @author fukuroda
  */
 class DivideModule extends ModuleBase {

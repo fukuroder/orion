@@ -130,7 +130,7 @@ class AudioProcessor{
 
     /**
      * 音量更新.
-     * @param gain　音量
+     * @param gain 音量
      */
     public function update_gain(gain:Float):Void {
         this.gain = gain;

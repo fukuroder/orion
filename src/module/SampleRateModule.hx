@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * samplerate_module.
+ * samplerate module.
  * @author fukuroda
  */
 class SampleRateModule extends ModuleBase {

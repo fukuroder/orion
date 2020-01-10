@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * multiply_module.
+ * multiply module.
  * @author fukuroda
  */
 class MultiplyModule extends ModuleBase {

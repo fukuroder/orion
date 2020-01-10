@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * delay_module.
+ * delay module.
  * @author fukuroda
  */
 class DelayModule extends ModuleBase {

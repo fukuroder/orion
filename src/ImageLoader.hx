@@ -10,7 +10,7 @@ class ImageLoader {
     /**
      * ロード開始.
      * @param name_list 名前リスト
-     * @param Image_Loaded　ロード完了後処理
+     * @param Image_Loaded ロード完了後処理
      */
     public static function load(name_list:Array<String>, Image_Loaded:Map<String,Image> -> Void){
         var loaded_image_prop = new Map<String, Image>();

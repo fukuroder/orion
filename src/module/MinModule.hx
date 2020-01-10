@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * min_module.
+ * min module.
  * @author fukuroda
  */
 class MinModule extends ModuleBase {

@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * sin_module.
+ * sin module.
  * @author fukuroda
  */
 class SinModule extends ModuleBase {

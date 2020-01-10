@@ -45,7 +45,7 @@ class AudioFileReader{
 
     /**
      * wav/oggファイルロード.
-     * @param audio_file　オーディオファイル
+     * @param audio_file オーディオファイル
      */
     public function load(audio_file:File):Void{
         // FileReader作成

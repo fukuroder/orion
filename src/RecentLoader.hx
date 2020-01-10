@@ -31,7 +31,7 @@ class RecentLoader {
     }
 
     /**
-     *　進む.
+     * 進む.
      */
     public function get_recent_forward(){
         var recent_offset:Int = this.recent_offset + this.limit;
@@ -39,7 +39,7 @@ class RecentLoader {
     }
 
     /**
-     *　TODO.
+     * TODO.
      */
     function get_recent(recent_offset) {
         // 送信文字列作成

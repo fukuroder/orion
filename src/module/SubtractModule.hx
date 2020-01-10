@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * subtract_module.
+ * subtract module.
  * @author fukuroda
  */
 class SubtractModule extends ModuleBase {

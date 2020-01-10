@@ -168,7 +168,7 @@ class ConnectionEditor{
     }
 
     /**
-     *　モジュールの再描画.
+     * モジュールの再描画.
      * @param modules
      */
     function redraw_modules(modules:Array<ModuleBase>):Void {

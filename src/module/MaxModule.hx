@@ -2,7 +2,7 @@ package module;
 import js.html.Image;
 
 /**
- * max_module.
+ * max module.
  * @author fukuroda
  */
 class MaxModule extends ModuleBase {
