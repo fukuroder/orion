@@ -66,7 +66,7 @@ class Main {
     static var _button_commit:Element;
     
     /**
-     * 
+     * TODO:
      */
     static var _text_midi_msg:Element;
 
@@ -85,16 +85,41 @@ class Main {
      */
     static var _button_ctrl3:Element;
     
-    
+    /**
+     * TODO:
+     */
     static var _button_learn1:Element;
+
+    /**
+     * TODO:
+     */
     static var _button_learn2:Element;
+
+    /**
+     * TODO:
+     */
     static var _button_learn3:Element;
+
+    /**
+     * TODO:
+     */
     static var _current_midi_msg:Int;
+
+    /**
+     * TODO:
+     */
     static var _midi_learn1:Int = -1;
+
+    /**
+     * TODO:
+     */
     static var _midi_learn2:Int = -1;
+
+    /**
+     * TODO:
+     */
     static var _midi_learn3:Int = -1;
     
-
     /**
      * TODO:
      */

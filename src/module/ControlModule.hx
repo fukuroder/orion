@@ -6,9 +6,14 @@ import js.html.Image;
  * @author fukuroda
  */
 class ControlModule extends ModuleBase {
-    /** */
+    /**
+     *
+     */
     public var value:Float;
 
+    /**
+     *
+     */
     public var idx:Int;
 
     /**
