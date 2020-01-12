@@ -25,6 +25,13 @@ try:
     # データベース接続（更新ロック）
     con = sqlite3.connect(database_path, isolation_level='IMMEDIATE')
     try:
+        # table create if not exists.
+        query="""CREATE TABLE IF NOT EXISTS "SAVE_MODULE" (
+	          "ID" INTEGER PRIMARY KEY AUTOINCREMENT,
+	          "KEY" TEXT NOT NULL UNIQUE,
+	          "SAVE_DATA" TEXT NOT NULL,
+	          "INSERT_DATE" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)"""
+        cur = con.execute(query)
 
         # 新しいKEYが重複していないか念のためチェック
         while True:
