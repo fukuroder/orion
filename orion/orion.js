@@ -385,30 +385,6 @@ ConnectionEditor.prototype = {
 		}
 		return null;
 	}
-	,getConnectedInputQuickBus: function(offset,module_arr,tol) {
-		var _g = 0;
-		while(_g < module_arr.length) {
-			var module = module_arr[_g];
-			++_g;
-			var _g1 = 0;
-			var _g11 = module.output_arr;
-			while(_g1 < _g11.length) {
-				var output = _g11[_g1];
-				++_g1;
-				var _g2 = 0;
-				var _g12 = output.quick_bus_next_input_arr;
-				while(_g2 < _g12.length) {
-					var next_input = _g12[_g2];
-					++_g2;
-					var p = next_input.get_point();
-					if(ConnectionEditor.squareDistance(p.x,p.y,offset.x,offset.y) < tol * tol) {
-						return next_input;
-					}
-				}
-			}
-		}
-		return null;
-	}
 	,getHitModuleOutput: function(offset) {
 		var _g = 0;
 		var _g1 = this._module_arr;
