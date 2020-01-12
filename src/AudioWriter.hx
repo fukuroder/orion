@@ -1,5 +1,8 @@
 package ;
 import js.html.audio.AudioBuffer;
+import js.lib.Float32Array;
+import js.lib.ArrayBuffer;
+import js.lib.DataView;
 import module.ModuleBase;
 
 /**
@@ -32,16 +35,16 @@ class AudioWriter{
      * 音声処理.
      * @param e
      */
-    public function start():js.lib.ArrayBuffer{
+    public function start():ArrayBuffer{
 
         // Output取得
-        var output:js.lib.Float32Array = new js.lib.Float32Array(2 * this.decoded_buffer.length);
+        var output:Float32Array = new Float32Array(2 * this.decoded_buffer.length);
 
         //Browser.window.alert("output.length="+output.length);
 
         // Input取得
-        var input1_arr:js.lib.Float32Array = this.decoded_buffer.getChannelData(0);
-        var input2_arr:js.lib.Float32Array = this.decoded_buffer.getChannelData(1);
+        var input1_arr:Float32Array = this.decoded_buffer.getChannelData(0);
+        var input2_arr:Float32Array = this.decoded_buffer.getChannelData(1);
 
         var module_sequence:Array<ModuleBase> = canvas._module_seqence;
 
@@ -92,8 +95,8 @@ class AudioWriter{
             return null;
         }
 
-        var wavdata:js.lib.ArrayBuffer = new js.lib.ArrayBuffer(44 + output.length * 2);
-        var view:js.lib.DataView = new js.lib.DataView(wavdata);
+        var wavdata:ArrayBuffer = new ArrayBuffer(44 + output.length * 2);
+        var view:DataView = new DataView(wavdata);
 
         // RIFF
         view.setUint8(0, 82);//'R' 82

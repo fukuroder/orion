@@ -2,6 +2,7 @@ package ;
 import js.html.audio.AudioBuffer;
 import js.html.audio.AudioContext;
 import js.html.audio.ScriptProcessorNode;
+import js.lib.Float32Array;
 import module.ModuleBase;
 
 /**
@@ -61,12 +62,12 @@ class AudioProcessor{
      */
     function audio_process(e):Void {
         // Output取得
-        var output1_arr:js.lib.Float32Array = e.outputBuffer.getChannelData(0);
-        var output2_arr:js.lib.Float32Array = e.outputBuffer.getChannelData(1);
+        var output1_arr:Float32Array = e.outputBuffer.getChannelData(0);
+        var output2_arr:Float32Array = e.outputBuffer.getChannelData(1);
 
         // Input取得
-        var input1_arr:js.lib.Float32Array = this.decoded_buffer.getChannelData(0);
-        var input2_arr:js.lib.Float32Array = this.decoded_buffer.getChannelData(1);
+        var input1_arr:Float32Array = this.decoded_buffer.getChannelData(0);
+        var input2_arr:Float32Array = this.decoded_buffer.getChannelData(1);
 
         var module_sequence:Array<ModuleBase> = canvas._module_seqence;
 

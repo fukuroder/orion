@@ -3,6 +3,7 @@ import js.html.Element;
 import js.Browser;
 import js.html.audio.AudioBuffer;
 import js.html.audio.AudioContext;
+import js.lib.ArrayBuffer;
 import js.html.Blob;
 import js.html.CanvasElement;
 import js.html.File;
@@ -980,7 +981,7 @@ class Main {
         }
 
         var rander:AudioWriter = new AudioWriter(_canvas, _decodedBuffer);
-        var wavebuf:js.lib.ArrayBuffer = rander.start();
+        var wavebuf:ArrayBuffer = rander.start();
         if ( wavebuf != null ) {
             var blob:Blob = new Blob([ wavebuf ], { "type" : 'audio/wav' } );
             Browser.window.open(URL.createObjectURL(blob), "");
