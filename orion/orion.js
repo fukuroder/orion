@@ -686,9 +686,27 @@ Lambda.foreach = function(it,f) {
 var Main = function() { };
 Main.__name__ = true;
 Main.main = function() {
+	new Vue({ el : "#recent", data : { recent_range : "", selected : "", options : []}, methods : { recent_backward_click : function() {
+		var aaa = Main._recent_loader.get_recent_backward();
+		if(aaa != null) {
+			this.selected = aaa.recent_select[0].value;
+			this.options = aaa.recent_select;
+			this.recent_range = aaa.recent_range;
+		}
+		return;
+	}, recent_forward_click : function() {
+		var aaa1 = Main._recent_loader.get_recent_forward();
+		if(aaa1 != null) {
+			this.selected = aaa1.recent_select[0].value;
+			this.options = aaa1.recent_select;
+			this.recent_range = aaa1.recent_range;
+		}
+		return;
+	}, recent_load_click : function() {
+		var selected_option_value = this.selected;
+		return window.location.href = window.location.pathname + "?" + selected_option_value;
+	}}});
 	window.onload = Main.windowLoaded;
-	window.onunload = function(e) {
-	};
 };
 Main.squareDistance = function(x1,y1,x2,y2) {
 	return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
@@ -969,45 +987,6 @@ Main.mouseout = function(e) {
 	}
 	Main._canvas.redraw();
 };
-Main.recent_backward_click = function() {
-	var aaa = Main._recent_loader.get_recent_backward();
-	if(aaa != null) {
-		Main._select_recent.textContent = "";
-		var _g = 0;
-		var _g1 = aaa.recent_select;
-		while(_g < _g1.length) {
-			var option = _g1[_g];
-			++_g;
-			var option_element = js_Boot.__cast(window.document.createElement("option") , HTMLOptionElement);
-			option_element.value = option.value;
-			option_element.text = option.html;
-			Main._select_recent.appendChild(option_element);
-		}
-		Main._recent_range.textContent = aaa.recent_range;
-	}
-};
-Main.recent_forward_click = function() {
-	var aaa = Main._recent_loader.get_recent_forward();
-	if(aaa != null) {
-		Main._select_recent.textContent = "";
-		var _g = 0;
-		var _g1 = aaa.recent_select;
-		while(_g < _g1.length) {
-			var option = _g1[_g];
-			++_g;
-			var option_element = js_Boot.__cast(window.document.createElement("option") , HTMLOptionElement);
-			option_element.value = option.value;
-			option_element.text = option.html;
-			Main._select_recent.appendChild(option_element);
-		}
-		Main._recent_range.textContent = aaa.recent_range;
-	}
-};
-Main.recent_load_click = function() {
-	var selected_index = Main._select_recent.selectedIndex;
-	var selected_option = js_Boot.__cast(Main._select_recent.options[selected_index] , HTMLOptionElement);
-	window.location.href = window.location.pathname + "?" + selected_option.value;
-};
 Main.audio_error = function() {
 	window.alert("An abnormal input signal was detected.");
 	Main._wave_play.value = "Play";
@@ -1129,9 +1108,6 @@ Main.windowLoaded = function() {
 	Main._work_view.setAttribute("height","400");
 	Main._canvas = new ConnectionEditor(Main._work_view);
 	Main._recent_loader = new RecentLoader();
-	Main._recent_backward.addEventListener("click",Main.recent_backward_click);
-	Main._recent_forward.addEventListener("click",Main.recent_forward_click);
-	Main._recent_load.addEventListener("click",Main.recent_load_click);
 	Main._wave_play.addEventListener("click",Main.wave_play_click);
 	Main._wave_save.addEventListener("click",Main.wave_save_click);
 	Main._wave_file.addEventListener("change",Main.wave_file_change);

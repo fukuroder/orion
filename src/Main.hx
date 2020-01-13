@@ -1,3 +1,4 @@
+import vue.Vue;
 import js.html.Event;
 import js.html.Element;
 import js.Browser;
@@ -10,7 +11,6 @@ import js.html.File;
 import js.html.Image;
 import js.html.InputElement;
 import js.html.SelectElement;
-import js.html.OptionElement;
 import js.html.URL;
 import js.html.XMLHttpRequest;
 import AudioFileReader;
@@ -24,7 +24,6 @@ import JsonConverter;
 import module.ModuleBase;
 import ModuleCreator;
 import RecentLoader;
-
 
 /**
  * メイン.
@@ -149,11 +148,6 @@ class Main {
     /**
      * TODO:
      */
-    static var _select_recent:SelectElement;
-
-    /**
-     * TODO:
-     */
     static var _slider_ctrl1:InputElement;
 
     /**
@@ -240,8 +234,41 @@ class Main {
      * メイン.
      */
     static function main():Void {
+        new Vue({
+			el: '#recent',
+			data: {
+                recent_range: '',
+                selected: '',
+                options: []
+            },
+            methods: {
+                recent_backward_click:()->{
+                    var aaa = _recent_loader.get_recent_backward();
+                    if ( aaa != null) {
+                        // select first option
+                        js.Lib.nativeThis.selected = aaa.recent_select[0].value;
+                        js.Lib.nativeThis.options = aaa.recent_select;
+                        js.Lib.nativeThis.recent_range = aaa.recent_range;
+                    }
+                },
+                recent_forward_click:()->{
+                    var aaa = _recent_loader.get_recent_forward();
+                    if ( aaa != null) {
+                        // select first option
+                        js.Lib.nativeThis.selected = aaa.recent_select[0].value;
+                        js.Lib.nativeThis.options = aaa.recent_select;
+                        js.Lib.nativeThis.recent_range = aaa.recent_range;
+                    }
+                },
+                recent_load_click:()->{
+                    var selected_option_value:String = js.Lib.nativeThis.selected;
+                    // URL移動
+                    Browser.window.location.href = Browser.window.location.pathname + '?' + selected_option_value;
+                }   
+            }
+        });
+        
         Browser.window.onload = windowLoaded;
-        Browser.window.onunload = function(e) { };
     }
 
     /**
@@ -849,50 +876,6 @@ class Main {
     }
 
     /**
-     *
-     */
-    static function recent_backward_click():Void{
-        var aaa = _recent_loader.get_recent_backward();
-        if ( aaa != null) {
-            _select_recent.textContent = ''; // remove children
-            for( option in aaa.recent_select ){
-                var option_element:OptionElement = cast(Browser.document.createElement('option'), OptionElement);
-                option_element.value = option.value;
-                option_element.text = option.html;
-                _select_recent.appendChild(option_element);
-            }
-            _recent_range.textContent = aaa.recent_range;
-        }
-    }
-
-    /**
-     *
-     */
-    static function recent_forward_click():Void{
-        var aaa = _recent_loader.get_recent_forward();
-        if ( aaa != null) {
-            _select_recent.textContent = ''; // remove children
-            for( option in aaa.recent_select ){
-                var option_element:OptionElement = cast(Browser.document.createElement('option'), OptionElement);
-                option_element.value = option.value;
-                option_element.text = option.html;
-                _select_recent.appendChild(option_element);
-            }
-            _recent_range.textContent = aaa.recent_range;
-        }
-    }
-
-    /**
-     *
-     */
-    static function recent_load_click():Void{
-        // URL移動
-        var selected_index:Int = _select_recent.selectedIndex;
-        var selected_option:OptionElement = cast(_select_recent.options[selected_index], OptionElement);
-        Browser.window.location.href = Browser.window.location.pathname + '?' + selected_option.value;
-    }
-
-    /**
      * 再生中に異常が発生したときの処理.
      */
     static function audio_error():Void {
@@ -1100,15 +1083,6 @@ class Main {
         _canvas = new ConnectionEditor(_work_view);
 
         _recent_loader = new RecentLoader();
-
-        // <<ボタンクリック時の処理
-        _recent_backward.addEventListener("click", recent_backward_click);
-
-        // >>ボタンクリック時の処理
-        _recent_forward.addEventListener("click", recent_forward_click);
-
-        // Loadボタンクリック時の処理
-        _recent_load.addEventListener("click", recent_load_click);
 
         // Playボタンクリック時の処理
         _wave_play.addEventListener("click", wave_play_click);

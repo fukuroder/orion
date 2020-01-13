@@ -3,16 +3,25 @@
 <head>
     <meta charset='utf-8'>
     <title>orion</title>
-    <script src='orion.js'></script>
+    <style type="text/css">
+        [v-cloak] {
+         display: none;
+        }
+    </style>
 </head>
 <body style="user-select:none; -moz-user-select:none; -webkit-user-select:none; -ms-user-select:none;">
     orion 0.2.10
     <hr/>
-    Save Data(<span id='recent_range'></span>):<br/>
-    <select id='select_recent' style='width:300px;' autocomplete='off' ></select>
-    <input id='recent_backward' type='button' value='<<'/>
-    <input id='recent_forward' type='button' value='>>' />
-    <input id='recent_load' type='button' value='Load' />
+    <div v-cloak id='recent'>
+        Save Data({{ recent_range }}):<br/>
+        <select id='select_recent' v-model='selected' style='width:300px;' autocomplete='off' >
+            <option v-for="option in options" v-bind:value="option.value"> {{ option.html }} </option>
+        </select>
+        <button id='recent_backward' v-on:click='recent_backward_click'>&lt&lt</button> 
+        <button id='recent_forward' v-on:click='recent_forward_click'>&gt&gt</button>
+        <button id='recent_load' v-on:click='recent_load_click'>Load</button>
+    </div>
+
     <hr/>
     <input id='wave_play' type='button' style='width:60px;' value='Play' />
     <input id='wave_save' type='button' style='width:60px;' value='Save' />
@@ -48,5 +57,7 @@
     <input id='button_revert' type='button' style='width:60px;' value='Revert' />
     <input id='button_clear' type='button' style='width:60px;' value='Clear' />
     <hr/>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script src='orion.js'></script>
 </body>
 </html>
