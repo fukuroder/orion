@@ -686,26 +686,35 @@ Lambda.foreach = function(it,f) {
 var Main = function() { };
 Main.__name__ = true;
 Main.main = function() {
-	new Vue({ el : "#recent", data : { recent_range : "", selected : "", options : []}, methods : { recent_backward_click : function() {
-		var aaa = Main._recent_loader.get_recent_backward();
-		if(aaa != null) {
-			this.selected = aaa.recent_select[0].value;
-			this.options = aaa.recent_select;
-			this.recent_range = aaa.recent_range;
+	var recent_loader = new RecentLoader();
+	new Vue({ el : "#recent", data : { selected : "", options : [], recent_range : ""}, methods : { recent_backward_click : function() {
+		var recent_save_data = recent_loader.get_recent_backward();
+		if(recent_save_data != null) {
+			this.selected = recent_save_data.recent_select[0].value;
+			this.options = recent_save_data.recent_select;
+			this.recent_range = recent_save_data.recent_range;
 		}
 		return;
 	}, recent_forward_click : function() {
-		var aaa1 = Main._recent_loader.get_recent_forward();
-		if(aaa1 != null) {
-			this.selected = aaa1.recent_select[0].value;
-			this.options = aaa1.recent_select;
-			this.recent_range = aaa1.recent_range;
+		var recent_save_data1 = recent_loader.get_recent_forward();
+		if(recent_save_data1 != null) {
+			this.selected = recent_save_data1.recent_select[0].value;
+			this.options = recent_save_data1.recent_select;
+			this.recent_range = recent_save_data1.recent_range;
 		}
 		return;
 	}, recent_load_click : function() {
 		var selected_option_value = this.selected;
 		return window.location.href = window.location.pathname + "?" + selected_option_value;
-	}}});
+	}}, created : function() {
+		var recent_save_data2 = recent_loader.get_recent_backward();
+		if(recent_save_data2 != null) {
+			this.selected = recent_save_data2.recent_select[0].value;
+			this.options = recent_save_data2.recent_select;
+			this.recent_range = recent_save_data2.recent_range;
+		}
+		return;
+	}});
 	window.onload = Main.windowLoaded;
 };
 Main.squareDistance = function(x1,y1,x2,y2) {
@@ -1079,11 +1088,6 @@ Main.windowLoaded = function() {
 	Main._button_learn2 = window.document.getElementById("button_learn2");
 	Main._button_learn3 = window.document.getElementById("button_learn3");
 	Main._button_revert = window.document.getElementById("button_revert");
-	Main._recent_backward = window.document.getElementById("recent_backward");
-	Main._recent_forward = window.document.getElementById("recent_forward");
-	Main._recent_load = window.document.getElementById("recent_load");
-	Main._recent_range = window.document.getElementById("recent_range");
-	Main._select_recent = js_Boot.__cast(window.document.getElementById("select_recent") , HTMLSelectElement);
 	Main._slider_ctrl1 = js_Boot.__cast(window.document.getElementById("slider_ctrl1") , HTMLInputElement);
 	Main._slider_ctrl2 = js_Boot.__cast(window.document.getElementById("slider_ctrl2") , HTMLInputElement);
 	Main._slider_ctrl3 = js_Boot.__cast(window.document.getElementById("slider_ctrl3") , HTMLInputElement);
@@ -1107,7 +1111,6 @@ Main.windowLoaded = function() {
 	Main._work_view.setAttribute("width","800");
 	Main._work_view.setAttribute("height","400");
 	Main._canvas = new ConnectionEditor(Main._work_view);
-	Main._recent_loader = new RecentLoader();
 	Main._wave_play.addEventListener("click",Main.wave_play_click);
 	Main._wave_save.addEventListener("click",Main.wave_save_click);
 	Main._wave_file.addEventListener("change",Main.wave_file_change);
@@ -1118,9 +1121,6 @@ Main.windowLoaded = function() {
 	});
 	Main._audio_context = new AudioContext();
 	if(Main._audio_context == null) {
-		Main._recent_backward.setAttribute("disabled","disabled");
-		Main._recent_forward.setAttribute("disabled","disabled");
-		Main._recent_load.setAttribute("disabled","disabled");
 		Main._button_ctrl1.setAttribute("disabled","disabled");
 		Main._button_ctrl2.setAttribute("disabled","disabled");
 		Main._button_ctrl3.setAttribute("disabled","disabled");
@@ -1321,7 +1321,6 @@ Main.Image_Loaded = function(img_map) {
 	Main._canvas.redraw();
 	Main._edit = false;
 	Main._canvas.calc_module_order();
-	Main._recent_backward.click();
 };
 Main.onMIDIInit = function(m) {
 	var it = m.inputs.values();

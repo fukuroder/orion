@@ -14,12 +14,12 @@
     <hr/>
     <div v-cloak id='recent'>
         Save Data({{ recent_range }}):<br/>
-        <select id='select_recent' v-model='selected' style='width:300px;' autocomplete='off' >
+        <select v-model='selected' style='width:300px;' autocomplete='off' >
             <option v-for="option in options" v-bind:value="option.value"> {{ option.html }} </option>
         </select>
-        <button id='recent_backward' v-on:click='recent_backward_click'>&lt&lt</button> 
-        <button id='recent_forward' v-on:click='recent_forward_click'>&gt&gt</button>
-        <button id='recent_load' v-on:click='recent_load_click'>Load</button>
+        <button v-on:click='recent_backward_click'>&lt&lt</button> 
+        <button v-on:click='recent_forward_click'>&gt&gt</button>
+        <button v-on:click='recent_load_click'>Load</button>
     </div>
 
     <hr/>
