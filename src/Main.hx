@@ -1266,7 +1266,7 @@ class Main {
         //------------------------------
         _button_revert.addEventListener('click', ()->{
             // 再ロード
-            untyped __js__('location.reload(true)');
+            Browser.window.location.reload(true);
         });
 
         //-----------------------------

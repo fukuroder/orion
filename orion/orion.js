@@ -1214,7 +1214,8 @@ Main.windowLoaded = function() {
 		return;
 	});
 	Main._button_revert.addEventListener("click",function() {
-		return location.reload(true);
+		window.location.reload(true);
+		return;
 	});
 	Main._button_clear.addEventListener("click",function() {
 		return window.location.href = window.location.pathname;
