@@ -16,8 +16,8 @@ try:
         raise
 
     # ヘッダ出力
-    print 'Content-Type: text/plain; charset=utf-8'
-    print ''
+    print('Content-Type: text/plain; charset=utf-8')
+    print('')
 
     # ID取得
     save_id = sys.stdin.read().decode('utf-8')
@@ -34,8 +34,7 @@ try:
             save_data = ''
 
         # 結果出力
-        if save_data != '':
-            print save_data.encode('utf-8')
+        print(save_data.encode('utf-8'))
 
     except:
         pass

@@ -19,8 +19,8 @@ try:
         raise
 
     # ヘッダ出力
-    print 'Content-Type: text/plain; charset=utf-8'
-    print ''
+    print('Content-Type: text/plain; charset=utf-8')
+    print('')
 
     # limit/offset取得
     js_read = sys.stdin.read().decode('utf-8')
@@ -53,8 +53,7 @@ try:
             json_recent = ''
 
         # 結果出力
-        if json_recent != '':
-            print json_recent.encode('utf-8')
+        print(json_recent.encode('utf-8'))
 
     except:
         pass
