@@ -216,8 +216,8 @@ class Main {
         var recent_loader:RecentLoader = new RecentLoader();
 
         new Vue({
-			el: '#recent',
-			data: {
+            el: '#recent',
+            data: {
                 selected: '',
                 options: [],
                 recent_range: ''
