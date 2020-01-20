@@ -533,6 +533,7 @@ ImageLoader.load = function(name_list,Image_Loaded) {
 			if(name_list.length == loaded_image_count) {
 				Image_Loaded(loaded_image_prop);
 			}
+			return;
 		};
 		(__map_reserved[a] != null ? loaded_image_prop.getReserved(a) : loaded_image_prop.h[a]).src = "img/" + a + ".png";
 	}
@@ -1118,6 +1119,7 @@ Main.windowLoaded = function() {
 		var srt_value = Main._slider_volume.value;
 		Main._text_volume.textContent = srt_value;
 		Main._audio_processor.update_gain(parseFloat(srt_value));
+		return;
 	});
 	Main._audio_context = new AudioContext();
 	if(Main._audio_context == null) {

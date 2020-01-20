@@ -18,7 +18,7 @@ class ImageLoader {
 
         for (a in name_list){
             loaded_image_prop[a] = new Image();
-            loaded_image_prop[a].onload = function(e:EventListener){
+            loaded_image_prop[a].onload = (e:EventListener)->{
                 loaded_image_count++;
                 if( name_list.length == loaded_image_count){
                     //--------------------------

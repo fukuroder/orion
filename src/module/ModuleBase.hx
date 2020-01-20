@@ -105,7 +105,7 @@ class ModuleBase {
      * 定数か？.
      */
     public function is_constant():Bool{
-        return Lambda.foreach(this.input_arr, function(input) { return input.constant; });
+        return Lambda.foreach(this.input_arr, (input)->{ return input.constant; });
     }
 
     /**
@@ -179,7 +179,7 @@ class ModuleBase {
         // 全Inputが準備OKかチェックする
         //-----------------------------------
         var order:Array<ModuleBase> = [];
-        var update = Lambda.foreach(this.input_arr, function(input){ return (input.constant || input.stream_updated); }); // 空もtrue
+        var update = Lambda.foreach(this.input_arr, (input)->{ return (input.constant || input.stream_updated); }); // 空もtrue
         if ( update == true) {
 
             order.push(this);

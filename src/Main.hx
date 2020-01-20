@@ -1079,7 +1079,7 @@ class Main {
         //--------------------
         // Volume更新時の処理
         //--------------------
-        _slider_volume.addEventListener('input', function(e){
+        _slider_volume.addEventListener('input', (e)->{
             //-------------------------------------------
             // changeはだと更新随時更新されない(Firefox)
             //-------------------------------------------

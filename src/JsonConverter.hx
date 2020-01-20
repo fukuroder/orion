@@ -20,7 +20,7 @@ class JsonConverter{
 
         // TODO:ControlModuleの順版がスライダーと合っていないためソート（暫定）
         var module_arr2:Array<ModuleBase> = module_arr.copy();
-        module_arr2.sort( function(m1:ModuleBase, m2:ModuleBase) {
+        module_arr2.sort( (m1:ModuleBase, m2:ModuleBase)->{
             if (m1.name != "control_module" && m2.name != "control_module" ) {
                 return 0;
             }
@@ -36,17 +36,17 @@ class JsonConverter{
             return ctrl1.idx - ctrl2.idx;
         });
 
-        var module_json = module_arr2.map(function(module){
+        var module_json = module_arr2.map((module)->{
 
             //----------------
             // output情報作成
             //----------------
-            var outputs = module.output_arr.map(function(output){
+            var outputs = module.output_arr.map((output)->{
 
                 //--------------------
                 // next input情報作成
                 //--------------------
-                var next_inputs = output.next_input_arr.map(function(next_input){
+                var next_inputs = output.next_input_arr.map((next_input)->{
                     // next input moduleのインデックス取得
                     var next_module_idx = module_arr2.indexOf(next_input.module);
 
@@ -54,7 +54,7 @@ class JsonConverter{
                     return {next_module_index:next_module_idx, next_input_index:next_input.index};
                 });
 
-                var quick_bus_next_inputs = output.quick_bus_next_input_arr.map(function(next_input){
+                var quick_bus_next_inputs = output.quick_bus_next_input_arr.map((next_input)->{
                     // next input moduleのインデックス取得
                     var next_module_idx = module_arr2.indexOf(next_input.module);
 
@@ -69,7 +69,7 @@ class JsonConverter{
             });
 
             // QuickConst
-            var inputs = module.input_arr.map(function(input){
+            var inputs = module.input_arr.map((input)->{
                 return {quick_const:input.quick_const};
             });
 
@@ -83,7 +83,7 @@ class JsonConverter{
                    inputs:inputs};
         });
 
-        var ctrl_json = ctrl_arr.map(function(ctrl){
+        var ctrl_json = ctrl_arr.map((ctrl)->{
             return{min:ctrl.getAttribute('min'),
                    max:ctrl.getAttribute('max'),
                    step:ctrl.getAttribute('step'),
