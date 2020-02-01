@@ -1,4 +1,3 @@
-import vue.Vue;
 import js.html.Event;
 import js.html.Element;
 import js.Browser;
@@ -10,6 +9,8 @@ import js.html.CanvasElement;
 import js.html.File;
 import js.html.Image;
 import js.html.InputElement;
+import js.html.SelectElement;
+import js.html.OptionElement;
 import js.html.URL;
 import js.html.XMLHttpRequest;
 import AudioFileReader;
@@ -127,6 +128,31 @@ class Main {
     /**
      * TODO:
      */
+    static var _recent_backward:Element;
+
+    /**
+     * TODO:
+     */
+    static var _recent_forward:Element;
+
+    /**
+     * TODO:
+     */
+    static var _recent_load:Element;
+
+    /**
+     * TODO:
+     */
+    static var _recent_range:Element;
+
+    /**
+     * TODO:
+     */
+    static var _select_recent:SelectElement;
+
+    /**
+     * TODO:
+     */
     static var _slider_ctrl1:InputElement;
 
     /**
@@ -213,51 +239,6 @@ class Main {
      * メイン.
      */
     static function main():Void {
-        var recent_loader:RecentLoader = new RecentLoader();
-
-        new Vue({
-            el: '#recent',
-            data: {
-                selected: '',
-                options: [],
-                recent_range: ''
-            },
-            methods: {
-                recent_backward_click:()->{
-                    var recent_save_data = recent_loader.get_recent_backward();
-                    if ( recent_save_data != null) {
-                        // select first option
-                        js.Lib.nativeThis.selected = recent_save_data.recent_select[0].value;
-                        js.Lib.nativeThis.options = recent_save_data.recent_select;
-                        js.Lib.nativeThis.recent_range = recent_save_data.recent_range;
-                    }
-                },
-                recent_forward_click:()->{
-                    var recent_save_data = recent_loader.get_recent_forward();
-                    if ( recent_save_data != null) {
-                        // select first option
-                        js.Lib.nativeThis.selected = recent_save_data.recent_select[0].value;
-                        js.Lib.nativeThis.options = recent_save_data.recent_select;
-                        js.Lib.nativeThis.recent_range = recent_save_data.recent_range;
-                    }
-                },
-                recent_load_click:()->{
-                    var selected_option_value:String = js.Lib.nativeThis.selected;
-                    // URL移動
-                    Browser.window.location.href = Browser.window.location.pathname + '?' + selected_option_value;
-                }   
-            },
-            created:()->{
-                var recent_save_data = recent_loader.get_recent_backward();
-                if ( recent_save_data != null) {
-                    // select first option
-                    js.Lib.nativeThis.selected = recent_save_data.recent_select[0].value;
-                    js.Lib.nativeThis.options = recent_save_data.recent_select;
-                    js.Lib.nativeThis.recent_range = recent_save_data.recent_range;
-                }
-            }
-        });
-        
         Browser.window.onload = windowLoaded;
     }
 
@@ -866,6 +847,50 @@ class Main {
     }
 
     /**
+     *
+     */
+    static function recent_backward_click():Void{
+        var aaa = _recent_loader.get_recent_backward();
+        if ( aaa != null) {
+            _select_recent.textContent = ''; // remove children
+            for( option in aaa.recent_select ){
+                var option_element:OptionElement = cast(Browser.document.createElement('option'), OptionElement);
+                option_element.value = option.value;
+                option_element.text = option.html;
+                _select_recent.appendChild(option_element);
+            }
+            _recent_range.textContent = aaa.recent_range;
+        }
+    }
+
+    /**
+     *
+     */
+    static function recent_forward_click():Void{
+        var aaa = _recent_loader.get_recent_forward();
+        if ( aaa != null) {
+            _select_recent.textContent = ''; // remove children
+            for( option in aaa.recent_select ){
+                var option_element:OptionElement = cast(Browser.document.createElement('option'), OptionElement);
+                option_element.value = option.value;
+                option_element.text = option.html;
+                _select_recent.appendChild(option_element);
+            }
+            _recent_range.textContent = aaa.recent_range;
+        }
+    }
+
+    /**
+     *
+     */
+    static function recent_load_click():Void{
+        // URL移動
+        var selected_index:Int = _select_recent.selectedIndex;
+        var selected_option:OptionElement = cast(_select_recent.options[selected_index], OptionElement);
+        Browser.window.location.href = Browser.window.location.pathname + '?' + selected_option.value;
+    }
+
+    /**
      * 再生中に異常が発生したときの処理.
      */
     static function audio_error():Void {
@@ -1035,6 +1060,11 @@ class Main {
         _button_learn2 = Browser.document.getElementById('button_learn2');
         _button_learn3 = Browser.document.getElementById('button_learn3');
         _button_revert = Browser.document.getElementById('button_revert');
+        _recent_backward = Browser.document.getElementById('recent_backward');
+        _recent_forward = Browser.document.getElementById('recent_forward');
+        _recent_load = Browser.document.getElementById('recent_load');
+        _recent_range = Browser.document.getElementById('recent_range');
+        _select_recent = cast(Browser.document.getElementById('select_recent'), SelectElement);
         _slider_ctrl1 = cast(Browser.document.getElementById('slider_ctrl1'), InputElement);
         _slider_ctrl2 = cast(Browser.document.getElementById('slider_ctrl2'), InputElement);
         _slider_ctrl3 = cast(Browser.document.getElementById('slider_ctrl3'), InputElement);
@@ -1067,6 +1097,17 @@ class Main {
         _work_view.setAttribute( 'height', Std.string(400) );
         _canvas = new ConnectionEditor(_work_view);
 
+        _recent_loader = new RecentLoader();
+
+        // <<ボタンクリック時の処理
+        _recent_backward.addEventListener("click", recent_backward_click);
+
+        // >>ボタンクリック時の処理
+        _recent_forward.addEventListener("click", recent_forward_click);
+
+        // Loadボタンクリック時の処理
+        _recent_load.addEventListener("click", recent_load_click);
+
         // Playボタンクリック時の処理
         _wave_play.addEventListener("click", wave_play_click);
 
@@ -1095,9 +1136,9 @@ class Main {
 
         if( _audio_context == null ){
             // IEの場合は諦める
-            //_recent_backward.setAttribute('disabled', 'disabled');
-            //_recent_forward.setAttribute('disabled', 'disabled');
-            //_recent_load.setAttribute('disabled', 'disabled');
+            _recent_backward.setAttribute('disabled', 'disabled');
+            _recent_forward.setAttribute('disabled', 'disabled');
+            _recent_load.setAttribute('disabled', 'disabled');
             _button_ctrl1.setAttribute('disabled', 'disabled');
             _button_ctrl2.setAttribute('disabled', 'disabled');
             _button_ctrl3.setAttribute('disabled', 'disabled');
@@ -1470,6 +1511,9 @@ class Main {
         _edit = false;
 
         _canvas.calc_module_order();
+
+        // 最近のコミット情報を取得する
+        _recent_backward.click();
     }
     
     /**
