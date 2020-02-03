@@ -15,7 +15,7 @@ class SampleRateModule extends ModuleBase {
      * @param img
      */
     public function new(x:Int, y:Int, img:Image){
-        super('samplerate_module', x, y, 0, 1, removable, img);
+        super('samplerate_module', x, y, 0, 1, false, img);
     }
 
     /**

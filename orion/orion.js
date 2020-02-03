@@ -2220,7 +2220,7 @@ module_OutputModule.prototype = $extend(module_ModuleBase.prototype,{
 	,__class__: module_OutputModule
 });
 var module_SampleRateModule = function(x,y,img) {
-	module_ModuleBase.call(this,"samplerate_module",x,y,0,1,this.removable,img);
+	module_ModuleBase.call(this,"samplerate_module",x,y,0,1,false,img);
 };
 module_SampleRateModule.__name__ = true;
 module_SampleRateModule.__super__ = module_ModuleBase;
