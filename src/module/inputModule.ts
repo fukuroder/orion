@@ -1,5 +1,4 @@
-package module;
-import js.html.Image;
+import {ModuleBase} from "./moduleBase.js"
 
 /**
  * input module.
@@ -9,12 +8,12 @@ class InputModule extends ModuleBase {
     /**
      * 値1.
      */
-    public var value1:Float;
+    public value1:number;
 
     /**
      * 値2.
      */
-    public var value2:Float;
+    public value2:number;
 
     /**
      * constructor.
@@ -23,7 +22,7 @@ class InputModule extends ModuleBase {
      * @param removable 削除可能か？
      * @param img 画像
      */
-    public function new (x:Int, y:Int, img:Image){
+    public constructor (x:number, y:number, img:HTMLImageElement){
         super('input_module', x, y, 0, 1, false, img);
         this.value1 = 0.0;
         this.value2 = 0.0;
@@ -34,7 +33,7 @@ class InputModule extends ModuleBase {
      * @param x
      * @param y
      */
-    override function move(x:Int, y:Int):Void {
+    public move(x:number, y:number):void {
         // 上下の移動のみ
         this.y = y;
     }
@@ -42,7 +41,7 @@ class InputModule extends ModuleBase {
     /**
      * evaluate.
      */
-    override function evaluate():Void{
+    public evaluate():void{
         this.output_arr[0].value1 = this.value1;
         this.output_arr[0].value2 = this.value2;
     }
@@ -51,7 +50,9 @@ class InputModule extends ModuleBase {
      * 定数か？
      * @return
      */
-    override function is_constant():Bool{
+    public is_constant():boolean{
         return false;
     }
 }
+
+export{InputModule}

@@ -1,7 +1,3 @@
-package ;
-import haxe.Json;
-import js.html.XMLHttpRequest;
-
 /**
  * Recentデータをロードするクラス.
  * @author fukuroda
@@ -10,40 +6,40 @@ class RecentLoader {
     /**
      * 取得する最大数.
      */
-    var limit:Int = 20;
+    private limit:number = 20;
 
     /**
      * TODO.
      */
-    var recent_offset:Int = 0;
+    private recent_offset:number = 0;
 
     /**
      * constructor.
      */
-    public function new () { }
+    public constructor () { }
 
     /**
      * 戻る.
      */
-    public function get_recent_backward() {
-        var recent_offset:Int = this.recent_offset - this.limit >= 0? this.recent_offset - this.limit : 0;
-        return get_recent(recent_offset);
+    public get_recent_backward() {
+        var recent_offset:number = this.recent_offset - this.limit >= 0? this.recent_offset - this.limit : 0;
+        return this.get_recent(recent_offset);
     }
 
     /**
      * 進む.
      */
-    public function get_recent_forward(){
-        var recent_offset:Int = this.recent_offset + this.limit;
-        return get_recent(recent_offset);
+    public get_recent_forward(){
+        var recent_offset:number = this.recent_offset + this.limit;
+        return this.get_recent(recent_offset);
     }
 
     /**
      * TODO.
      */
-    function get_recent(recent_offset) {
+    private get_recent(recent_offset:number) {
         // 送信文字列作成
-        var json_send_str = Json.stringify( { limit:this.limit, offset:recent_offset } );
+        var json_send_str = JSON.stringify( { limit:this.limit, offset:recent_offset } );
 
         // 送信
         var request:XMLHttpRequest = new XMLHttpRequest();
@@ -52,15 +48,15 @@ class RecentLoader {
         if( request.status == 200 ){
             if( request.response.length > 0 ){
                 try{
-                    var json_obj = Json.parse(request.response);
-                    var key_arr:Array<String> = json_obj.recent_key;
+                    var json_obj = JSON.parse(request.response);
+                    var key_arr:string[] = json_obj.recent_key;
                     var date_arr = json_obj.recent_date;
                     if ( key_arr.length > 0 ) {
                         var recent_select = [];
-                        for( i in 0...key_arr.length ){
-                            recent_select.push({html:Std.string(recent_offset+i+1) + ' | ' + date_arr[i] + ' | #' + key_arr[i], value:key_arr[i]});
+                        for( var i = 0; i<key_arr.length; i++ ){
+                            recent_select.push({html:(recent_offset+i+1).toString() + ' | ' + date_arr[i] + ' | #' + key_arr[i], value:key_arr[i]});
                         }
-                        var recent_range = Std.string(recent_offset + 1) + '-' + Std.string(recent_offset + key_arr.length);
+                        var recent_range = (recent_offset + 1).toString() + '-' + (recent_offset + key_arr.length).toString();
 
                         this.recent_offset = recent_offset;
 
@@ -68,7 +64,7 @@ class RecentLoader {
                         return { recent_select:recent_select, recent_range:recent_range };
                     }
                 }
-                catch (e:Dynamic){
+                catch (e){
                 }
             }
         }
@@ -77,3 +73,5 @@ class RecentLoader {
         return null;
     }
 }
+
+export{RecentLoader}

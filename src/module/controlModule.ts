@@ -1,5 +1,4 @@
-package module;
-import js.html.Image;
+import {ModuleBase} from "./moduleBase.js"
 
 /**
  * control module.
@@ -9,12 +8,12 @@ class ControlModule extends ModuleBase {
     /**
      *
      */
-    public var value:Float;
+    public value:number;
 
     /**
      *
      */
-    public var idx:Int;
+    public idx:number;
 
     /**
      * constructor.
@@ -24,7 +23,7 @@ class ControlModule extends ModuleBase {
      * @param canvas_context
      * @param img
      */
-    public function new (x:Int, y:Int, img:Image, idx:Int){
+    public constructor (x:number, y:number, img:HTMLImageElement, idx:number){
         super('control_module', x, y, 0, 1, false, img);
         this.value = 0.5;
         this.idx = idx;
@@ -35,7 +34,7 @@ class ControlModule extends ModuleBase {
      * @param x
      * @param y
      */
-    override function move(x:Int, y:Int):Void {
+    public move(x:number, y:number):void {
         // 上下の移動のみ
         this.y = y;
     }
@@ -43,8 +42,10 @@ class ControlModule extends ModuleBase {
     /**
      * evaluate.
      */
-    override function evaluate():Void{
+    public evaluate():void{
         this.output_arr[0].value1 = this.value;
         this.output_arr[0].value2 = this.value;
     }
 }
+
+export{ControlModule}

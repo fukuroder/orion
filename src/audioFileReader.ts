@@ -1,8 +1,3 @@
-package ;
-import js.html.audio.AudioContext;
-import js.html.File;
-import js.html.FileReader;
-
 /**
  * オーディオファイル読み込み.
  * @author fukuroda
@@ -11,19 +6,19 @@ class AudioFileReader{
     /**
      * デコード完了時の処理.
      */
-    var decodeFinished:Dynamic;
+    private decodeFinished:DecodeSuccessCallback;
 
     /**
      * デコード失敗時の処理.
      */
-    var decodeError:Dynamic;
+    private decodeError:DecodeErrorCallback;
 
     /**
      * constructor.
      * @param decodeFinished デコード完了時の処理
      * @param decodeError デコード失敗時の処理
      */
-    public function new(decodeFinished, decodeError):Void{
+    public constructor(decodeFinished:DecodeSuccessCallback, decodeError:DecodeErrorCallback){
         this.decodeFinished = decodeFinished;
         this.decodeError = decodeError;
     }
@@ -32,7 +27,7 @@ class AudioFileReader{
      * wav/oggファイルロード完了後の処理.
      * @param loaded_evt ロード完了イベント
      */
-    function loadFinished(loaded_evt):Void{
+    private loadFinished = (loaded_evt:any) => {
         // AudioContext作成
         var audio_context:AudioContext = new AudioContext();
 
@@ -47,14 +42,16 @@ class AudioFileReader{
      * wav/oggファイルロード.
      * @param audio_file オーディオファイル
      */
-    public function load(audio_file:File):Void{
+    public load(audio_file:File):void{
         // FileReader作成
         var reader:FileReader = new FileReader();
 
         // ロード完了時の処理を指定
-        reader.onload = loadFinished;
+        reader.onload = this.loadFinished;
 
         // ロード開始
         reader.readAsArrayBuffer(audio_file);
     }
 }
+
+export{AudioFileReader}

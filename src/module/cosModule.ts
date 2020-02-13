@@ -1,5 +1,4 @@
-package module;
-import js.html.Image;
+import {ModuleBase} from "./moduleBase.js"
 
 /**
  * cos module.
@@ -14,15 +13,17 @@ class CosModule extends ModuleBase {
      * @param canvas_context
      * @param img
      */
-    public function new(x:Int, y:Int, removable:Bool, img:Image){
+    public constructor(x:number, y:number, removable:boolean, img:HTMLImageElement){
         super('cos_module', x, y, 1, 1, removable, img);
     }
 
     /**
      * evaluate.
      */
-    override function evaluate():Void{
+    public evaluate():void{
         this.output_arr[0].value1 = Math.cos(this.input_arr[0].value1);
         this.output_arr[0].value2 = Math.cos(this.input_arr[0].value2);
     }
 }
+
+export{CosModule}

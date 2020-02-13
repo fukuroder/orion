@@ -1,21 +1,19 @@
-package ;
-import js.html.Image;
-import module.AddModule;
-import module.ControlModule;
-import module.CosModule;
-import module.DelayModule;
-import module.DivideModule;
-import module.InputModule;
-import module.ModuleBase;
-import module.MultiplyModule;
-import module.OutputModule;
-import module.SampleRateModule;
-import module.SinModule;
-import module.SqrtModule;
-import module.SubtractModule;
-import module.TanModule;
-import module.MinModule;
-import module.MaxModule;
+import {AddModule} from "./module/addModule.js"
+import {ControlModule} from "./module/controlModule.js"
+import {CosModule} from "./module/cosModule.js"
+import {DelayModule} from "./module/delayModule.js"
+import {DivideModule} from "./module/divideModule.js"
+import {InputModule} from "./module/inputModule.js"
+import {ModuleBase} from "./module/moduleBase.js"
+import {MultiplyModule} from "./module/multiplyModule.js"
+import {OutputModule} from "./module/outputModule.js"
+import {SampleRateModule} from "./module/sampleRateModule.js"
+import {SinModule} from "./module/sinModule.js"
+import {SqrtModule} from "./module/sqrtModule.js"
+import {SubtractModule} from "./module/subtractModule.js"
+import {TanModule} from "./module/tanModule.js"
+import {MinModule} from "./module/minModule.js"
+import {MaxModule} from "./module/maxModule.js"
 
 /**
  * TODO.
@@ -25,17 +23,17 @@ class ModuleCreator {
     /**
      * TODO.
      */
-    var image_map:Map<String,Image>;
+    private image_map:Map<string, HTMLImageElement>;
 
     /**
      * TODO.
      */
-    var ctrl_count:Int = 0;
+    private ctrl_count:number = 0;
 
     /**
      * TODO.
      */
-    public function new(image_map:Map<String,Image>){
+    public constructor(image_map:Map<string,HTMLImageElement>){
         this.image_map = image_map;
     }
 
@@ -47,55 +45,57 @@ class ModuleCreator {
      * @param img
      * @return
      */
-    public function CreateByName(name:String, x:Int, y:Int, removable:Bool=true):ModuleBase {
+    public CreateByName(name:string, x:number, y:number, removable:boolean=true):ModuleBase|null {
         if ( 'control_module' == name ) {
-            ctrl_count++;
-            return new ControlModule(x, y, image_map[name + '_' + ctrl_count], ctrl_count);
+            this.ctrl_count++;
+            return new ControlModule(x, y, this.image_map.get(name + '_' + this.ctrl_count)!, this.ctrl_count);
         }
         else if ( 'input_module' == name ) {
-            return new InputModule(x, y, image_map[name]);
+            return new InputModule(x, y, this.image_map.get(name)!);
         }
         else if ( 'output_module' == name ) {
-            return new OutputModule(x, y, image_map[name]);
+            return new OutputModule(x, y, this.image_map.get(name)!);
         }
         else if ( 'samplerate_module' == name ) {
-            return new SampleRateModule(x, y, image_map[name]);
+            return new SampleRateModule(x, y, this.image_map.get(name)!);
         }
         else if ( 'add_module' == name ) {
-            return new AddModule(x, y, removable, image_map[name]);
+            return new AddModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ( 'subtract_module' == name) {
-            return new SubtractModule(x, y, removable, image_map[name]);
+            return new SubtractModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ( 'multiply_module' == name) {
-            return new MultiplyModule(x, y, removable, image_map[name]);
+            return new MultiplyModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('divide_module' == name) {
-            return new DivideModule(x, y, removable, image_map[name]);
+            return new DivideModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('sqrt_module' == name) {
-            return new SqrtModule(x, y, removable, image_map[name]);
+            return new SqrtModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('sin_module' == name) {
-            return new SinModule(x, y, removable, image_map[name]);
+            return new SinModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('cos_module' == name) {
-            return new CosModule(x, y, removable, image_map[name]);
+            return new CosModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('tan_module' == name) {
-            return new TanModule(x, y, removable, image_map[name]);
+            return new TanModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ( 'delay_module' == name){
-            return new DelayModule(x, y, removable, image_map[name]);
+            return new DelayModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ('min_module' == name) {
-            return new MinModule(x, y, removable, image_map[name]);
+            return new MinModule(x, y, removable, this.image_map.get(name)!);
         }
         else if ( 'max_module' == name){
-            return new MaxModule(x, y, removable, image_map[name]);
+            return new MaxModule(x, y, removable, this.image_map.get(name)!);
         }
         else{
             return null;
         }
     }
 }
+
+export{ModuleCreator}

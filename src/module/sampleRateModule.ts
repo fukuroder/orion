@@ -1,5 +1,4 @@
-package module;
-import js.html.Image;
+import {ModuleBase} from "./moduleBase.js"
 
 /**
  * samplerate module.
@@ -14,8 +13,8 @@ class SampleRateModule extends ModuleBase {
      * @param canvas_context
      * @param img
      */
-    public function new(x:Int, y:Int, img:Image){
-        super('samplerate_module', x, y, 0, 1, removable, img);
+    public constructor(x:number, y:number, img:HTMLImageElement){
+        super('samplerate_module', x, y, 0, 1, false, img);
     }
 
     /**
@@ -23,8 +22,10 @@ class SampleRateModule extends ModuleBase {
      * @param x
      * @param y
      */
-    override function move(x:Int, y:Int):Void {
+    public move(x:number, y:number):void {
         // 上下の移動のみとする
         this.y = y;
     }
 }
+
+export{SampleRateModule}

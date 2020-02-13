@@ -1,40 +1,41 @@
-package io ;
-import module.ModuleBase;
+import {ModuleBase} from "../module/moduleBase.js"
 
 /**
  * TODO.
  * @author fukuroda
  */
-class IOBase{
+class IoBase{
     /**
      * 値1.
      */
-    public var value1:Float;
+    public value1:number;
 
     /**
      * 値2:
      */
-    public var value2:Float;
+    public value2:number;
 
     /**
      * TODO:
      */
-    public var module:ModuleBase;
+    public module:ModuleBase;
 
     /**
      * TODO:
      */
-    public var index:Int;
+    public index:number;
 
     /**
      * constructor.
      * @param module
      * @param index
      */
-    public function new(module:ModuleBase, index:Int) {
+    public constructor(module:ModuleBase, index:number) {
         this.module = module;
         this.index = index;
         this.value1 = 0.0;
         this.value2 = 0.0;
     }
 }
+
+export{IoBase}

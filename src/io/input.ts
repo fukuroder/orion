@@ -1,37 +1,38 @@
-package io ;
-import module.ModuleBase;
+import {ModuleBase} from "../module/moduleBase.js"
+import {IoBase} from "./ioBase.js"
+import {Output} from "./output.js"
 
 /**
  * Inputクラス.
  * @author fukuroda
  */
-class Input extends IOBase {
+class Input extends IoBase {
     /**
      * 前のOutput.
      */
-    public var prev_output:Output;
+    public prev_output:Output|null;
 
     /**
      * QuickConst名.
      */
-    public var quick_const:String;
+    public quick_const:string;
 
     /**
      * 定数か？.
      */
-    public var constant:Bool;
+    public constant:boolean;
 
     /**
      * TODO.
      */
-    public var stream_updated:Bool;
+    public stream_updated:boolean;
 
     /**
      * constructor.
      * @param module
      * @param index
      */
-    public function new(module:ModuleBase, index:Int){
+    public constructor(module:ModuleBase, index:number){
         super(module, index);
 
         this.prev_output = null;
@@ -43,7 +44,7 @@ class Input extends IOBase {
     /**
      * 位置取得.
      */
-    public function get_point(){
+    public get_point(){
         return this.module.get_input_point(this.index);
     }
 
@@ -51,7 +52,7 @@ class Input extends IOBase {
      * 接続.
      * @param output
      */
-    public function connect_with_output(output:Output):Void{
+    public connect_with_output(output:Output):void{
         this.prev_output = output;
         this.value1 = output.value1;
         this.value2 = output.value2;
@@ -64,7 +65,7 @@ class Input extends IOBase {
      * @param quick_const
      * @param value
      */
-    public function update_quick_const(quick_const:String, value:Float):Void{
+    public update_quick_const(quick_const:string, value:number):void{
         this.quick_const = quick_const;
         this.value1 = value;
         this.value2 = value;
@@ -74,7 +75,7 @@ class Input extends IOBase {
     /**
      * 切断.
      */
-    public function disconnect_with_output():Void{
+    public disconnect_with_output():void{
         this.prev_output = null;
         this.value1 = 0.0;
         this.value2 = 0.0;
@@ -83,3 +84,4 @@ class Input extends IOBase {
     }
 }
 
+export {Input}

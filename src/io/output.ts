@@ -1,32 +1,33 @@
-package io ;
-import module.ModuleBase;
+import {ModuleBase} from "../module/moduleBase.js"
+import {IoBase} from "./ioBase.js"
+import {Input} from "./input.js"
 
 /**
  * ...
  * @author fukuroda
  */
-class Output extends IOBase{
+class Output extends IoBase{
     /**
      * TODO.
      */
-    public var next_input_arr:Array<Input>;
+    public next_input_arr:Input[];
 
     /**
      * TODO.
      */
-    public var quick_bus_name:String;
+    public quick_bus_name:string;
 
     /**
      * TODO.
      */
-    public var quick_bus_next_input_arr:Array<Input>;
+    public quick_bus_next_input_arr:Input[];
 
     /**
      * constructor.
      * @param module
      * @param index
      */
-    public function new(module:ModuleBase, index:Int){
+    public constructor(module:ModuleBase, index:number){
         super(module, index);
         this.next_input_arr = [];
         this.quick_bus_name = '';           // QuickBus名
@@ -36,7 +37,7 @@ class Output extends IOBase{
     /**
      * 位置取得.
      */
-    public function get_point(){
+    public get_point(){
         return this.module.get_output_point(this.index);
     }
 
@@ -44,7 +45,7 @@ class Output extends IOBase{
      * 接続
      * @param input
      */
-    public function connect(input:Input):Void{
+    public connect(input:Input):void{
         input.connect_with_output(this);
         this.next_input_arr.push(input);
     }
@@ -53,7 +54,7 @@ class Output extends IOBase{
      * 接続
      * @param input
      */
-    public function connect_quickbus(input:Input):Void{
+    public connect_quickbus(input:Input):void{
         input.connect_with_output(this);
         this.quick_bus_next_input_arr.push(input);
     }
@@ -62,20 +63,20 @@ class Output extends IOBase{
      * 切断
      * @param input
      */
-    public function disconnect(input:Input = null):Bool{
+    public disconnect(input:Input|null=null):boolean{
         if( input == null ){
             //------------------------
             // 引数無しの場合は全削除
             //------------------------
-            for ( input in this.next_input_arr) { input.disconnect_with_output(); }
-            untyped __js__('this.next_input_arr.length = 0'); // TODO:
+            for ( var i of this.next_input_arr) { i.disconnect_with_output(); }
+            this.next_input_arr.length = 0; // TODO:
             return true;
         }
 
-        var removeIndex:Int = this.next_input_arr.indexOf(input);
+        var removeIndex:number = this.next_input_arr.indexOf(input);
         if( removeIndex >= 0 ){
             input.disconnect_with_output();
-            this.next_input_arr.remove(input);
+            this.next_input_arr.splice(removeIndex, 1);
             return true;
         }
 
@@ -86,13 +87,13 @@ class Output extends IOBase{
      * 切断
      * @param input
      */
-    public function disconnect_quickbus(input:Input = null):Bool{
+    public disconnect_quickbus(input:Input|null=null):boolean{
         if( input == null ){
             //------------------------
             // 引数無しの場合は全削除
             //------------------------
-            for( input in this.quick_bus_next_input_arr ){ input.disconnect_with_output(); }
-            untyped __js__('this.quick_bus_next_input_arr.length = 0'); // TODO:
+            for( var i of this.quick_bus_next_input_arr ){ i.disconnect_with_output(); }
+            this.quick_bus_next_input_arr.length = 0; // TODO:
             this.quick_bus_name = "";
 
             return true;
@@ -101,10 +102,12 @@ class Output extends IOBase{
         var removeIndex = this.quick_bus_next_input_arr.indexOf(input);
         if( removeIndex >= 0 ){
             input.disconnect_with_output();
-            this.quick_bus_next_input_arr.remove(input);
+            this.quick_bus_next_input_arr.splice( removeIndex, 1);
 
             return true;
         }
         return false;
     }
 }
+
+export {Output}

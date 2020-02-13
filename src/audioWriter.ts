@@ -1,9 +1,5 @@
-package ;
-import js.html.audio.AudioBuffer;
-import js.lib.Float32Array;
-import js.lib.ArrayBuffer;
-import js.lib.DataView;
-import module.ModuleBase;
+import {ModuleBase} from "./module/moduleBase.js"
+import {ConnectionEditor} from "./connectionEditor.js"
 
 /**
  * 音声処理クラス.
@@ -14,19 +10,19 @@ class AudioWriter{
     /**
      * バッファ.
      */
-    var decoded_buffer:AudioBuffer;
+    private decoded_buffer:AudioBuffer;
 
     /**
      * TODO.
      */
-    var canvas:ConnectionEditor;
+    private canvas:ConnectionEditor;
 
     /**
      * constructor.
      * @param audio_context
      * @param abnormal_end
      */
-    public function new(canvas:ConnectionEditor, decoded_buffer:AudioBuffer ) {
+    public constructor(canvas:ConnectionEditor, decoded_buffer:AudioBuffer) {
         this.canvas = canvas;
         this.decoded_buffer = decoded_buffer;
     }
@@ -35,7 +31,7 @@ class AudioWriter{
      * 音声処理.
      * @param e
      */
-    public function start():ArrayBuffer{
+    public start():ArrayBuffer|null{
 
         // Output取得
         var output:Float32Array = new Float32Array(2 * this.decoded_buffer.length);
@@ -46,41 +42,41 @@ class AudioWriter{
         var input1_arr:Float32Array = this.decoded_buffer.getChannelData(0);
         var input2_arr:Float32Array = this.decoded_buffer.getChannelData(1);
 
-        var module_sequence:Array<ModuleBase> = canvas._module_seqence;
+        var module_sequence:ModuleBase[] = this.canvas._module_seqence;
 
         var maxvalue = 0.0;
-        for ( i in 0...this.decoded_buffer.length) {
-            this.canvas._input_module.value1 = input1_arr[i];
-            this.canvas._input_module.value2 = input2_arr[i];
+        for ( var i = 0; i<this.decoded_buffer.length; i++) {
+            this.canvas._input_module!.value1 = input1_arr[i];
+            this.canvas._input_module!.value2 = input2_arr[i];
 
-            for ( m in module_sequence) {
+            for ( var m of module_sequence) {
                 m.evaluate();
 
                 // Output先のモジュールを更新する
-                for( output in m.output_arr ){
-                    for( next_input in output.next_input_arr ){
+                for( var o of m.output_arr ){
+                    for( var next_input of o.next_input_arr ){
                         // Output値をInput値に設定
-                        next_input.value1 = output.value1;
-                        next_input.value2 = output.value2;
+                        next_input.value1 = o.value1;
+                        next_input.value2 = o.value2;
                     }
 
                     // QuickBus
-                    for( next_input in output.quick_bus_next_input_arr ){
+                    for( var next_input of o.quick_bus_next_input_arr ){
                         // Output値をInput値に設定
-                        next_input.value1 = output.value1;
-                        next_input.value2 = output.value2;
+                        next_input.value1 = o.value1;
+                        next_input.value2 = o.value2;
                     }
                 }
             }
 
-            if ( -10 < this.canvas._output_module.value1 && this.canvas._output_module.value1 < 10 &&
-                 -10 < this.canvas._output_module.value2 && this.canvas._output_module.value2 < 10 ){
-                output[2 * i] = this.canvas._output_module.value1;
-                output[2 * i + 1] = this.canvas._output_module.value2;
+            if ( -10 < this.canvas._output_module!.value1 && this.canvas._output_module!.value1 < 10 &&
+                 -10 < this.canvas._output_module!.value2 && this.canvas._output_module!.value2 < 10 ){
+                output[2 * i] = this.canvas._output_module!.value1;
+                output[2 * i + 1] = this.canvas._output_module!.value2;
 
                 // 最大値更新
-                if ( maxvalue < Math.abs(this.canvas._output_module.value1) ) maxvalue = Math.abs(this.canvas._output_module.value1);
-                if ( maxvalue < Math.abs(this.canvas._output_module.value2) ) maxvalue = Math.abs(this.canvas._output_module.value2);
+                if ( maxvalue < Math.abs(this.canvas._output_module!.value1) ) maxvalue = Math.abs(this.canvas._output_module!.value1);
+                if ( maxvalue < Math.abs(this.canvas._output_module!.value2) ) maxvalue = Math.abs(this.canvas._output_module!.value2);
             }
             else{
                 //-----
@@ -147,10 +143,12 @@ class AudioWriter{
         /* data chunk length */
         view.setUint32(40, output.length * 2, true);
 
-        for (i in 0...output.length) {
+        for (var i=0; i<output.length; i++) {
             view.setInt16(44 + 2 * i, Math.round(output[i] * 32768 / maxvalue), true);
         }
 
         return wavdata;
     }
 }
+
+export{AudioWriter}

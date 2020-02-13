@@ -1,5 +1,4 @@
-package module;
-import js.html.Image;
+import {ModuleBase} from "./moduleBase.js"
 
 /**
  * output module.
@@ -9,12 +8,12 @@ class OutputModule extends ModuleBase {
     /**
      * 値1.
      */
-    public var value1:Float;
+    public value1:number;
 
     /**
      * 値2.
      * */
-    public var value2:Float;
+    public value2:number;
 
     /**
      * constructor.
@@ -24,7 +23,7 @@ class OutputModule extends ModuleBase {
      * @param canvas_context
      * @param img
      */
-    public function new (x:Int, y:Int, img:Image){
+    public constructor (x:number, y:number, img:HTMLImageElement){
         super('output_module', x, y, 1, 0, false, img);
         this.value1 = 0.0;
         this.value2 = 0.0;
@@ -35,7 +34,7 @@ class OutputModule extends ModuleBase {
      * @param x
      * @param y
      */
-    override function move(x:Int, y:Int):Void {
+    public move(x:number, y:number):void {
         // 上下の移動のみ
         this.y = y;
     }
@@ -43,8 +42,10 @@ class OutputModule extends ModuleBase {
     /**
      * evaluate.
      */
-    override function evaluate():Void{
+    public evaluate():void{
         this.value1 = this.input_arr[0].value1;
         this.value2 = this.input_arr[0].value2;
     }
 }
+
+export{OutputModule}
