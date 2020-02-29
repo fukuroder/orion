@@ -1,11 +1,11 @@
-import {Input} from "./io/input.js"
-import {Output} from "./io/output.js"
-import {ControlModule} from "./module/controlModule.js"
-import {DelayModule} from "./module/delayModule.js"
-import {InputModule} from "./module/inputModule.js"
-import {ModuleBase} from "./module/moduleBase.js"
-import {OutputModule} from "./module/outputModule.js"
-import {SampleRateModule} from "./module/sampleRateModule.js"
+import {Input} from "./io/input"
+import {Output} from "./io/output"
+import {ControlModule} from "./module/controlModule"
+import {DelayModule} from "./module/delayModule"
+import {InputModule} from "./module/inputModule"
+import {ModuleBase} from "./module/moduleBase"
+import {OutputModule} from "./module/outputModule"
+import {SampleRateModule} from "./module/sampleRateModule"
 
 /**
  * キャンバスクラス.

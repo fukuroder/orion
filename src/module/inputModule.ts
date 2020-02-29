@@ -1,4 +1,4 @@
-import {ModuleBase} from "./moduleBase.js"
+import {ModuleBase} from "./moduleBase"
 
 /**
  * input module.

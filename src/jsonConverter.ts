@@ -1,7 +1,7 @@
-import {Input} from "./io/input.js"
-import {ControlModule} from "./module/controlModule.js"
-import {ModuleBase} from "./module/moduleBase.js"
-import {ModuleCreator} from "./moduleCreator.js"
+import {Input} from "./io/input"
+import {ControlModule} from "./module/controlModule"
+import {ModuleBase} from "./module/moduleBase"
+import {ModuleCreator} from "./moduleCreator"
 
 /**
  * TODO.

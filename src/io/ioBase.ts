@@ -1,4 +1,4 @@
-import {ModuleBase} from "../module/moduleBase.js"
+import {ModuleBase} from "../module/moduleBase"
 
 /**
  * TODO.

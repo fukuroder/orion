@@ -1,5 +1,5 @@
-import {ModuleBase} from "./module/moduleBase.js"
-import {ConnectionEditor} from "./connectionEditor.js"
+import {ModuleBase} from "./module/moduleBase"
+import {ConnectionEditor} from "./connectionEditor"
 
 /**
  * 音声処理クラス.

@@ -1,6 +1,6 @@
-import {ModuleBase} from "../module/moduleBase.js"
-import {IoBase} from "./ioBase.js"
-import {Input} from "./input.js"
+import {ModuleBase} from "../module/moduleBase"
+import {IoBase} from "./ioBase"
+import {Input} from "./input"
 
 /**
  * ...

@@ -1,739 +1,425 @@
-import { AudioFileReader } from "./audioFileReader.js";
-import { AudioProcessor } from "./audioProcessor.js";
-import { AudioWriter } from "./audioWriter.js";
-import { ConnectionEditor } from "./connectionEditor.js";
-import { ImageLoader } from "./imageLoader.js";
-import { JsonConverter } from "./jsonConverter.js";
-import { ModuleCreator } from "./moduleCreator.js";
-import { RecentLoader } from "./recentLoader.js";
-class Main {
-    static squareDistance(x1, y1, x2, y2) {
-        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
-    }
-    static getOffset(e) {
-        var target = e.target;
-        return { x: e.pageX - target.offsetLeft, y: e.pageY - target.offsetTop };
-    }
-    static editSlider(slider) {
-        do {
-            var str = prompt('Input min, max, step.', slider.getAttribute('min') + ', ' + slider.getAttribute('max') + ', ' + slider.getAttribute('step'));
-            if (str == null) {
-                return false;
-            }
-            if (str == '') {
-                slider.setAttribute('min', '0.0');
-                slider.setAttribute('max', '1.0');
-                slider.setAttribute('step', '0.01');
-                slider.value = '0.5';
-            }
-            else {
-                var str_split = str.split(',');
-                if (str_split.length != 3) {
-                    continue;
-                }
-                var min_str = str_split[0];
-                var max_str = str_split[1];
-                var step_str = str_split[2];
-                var min = Number(min_str);
-                var max = Number(max_str);
-                var step = Number(step_str);
-                if (isNaN(min) || isNaN(max) || isNaN(step)) {
-                    continue;
-                }
-                if (min >= max) {
-                    continue;
-                }
-                if (step <= 0.0) {
-                    continue;
-                }
-                var value = parseFloat(slider.value);
-                if (value < min) {
-                    value = min;
-                }
-                else if (max < value) {
-                    value = max;
-                }
-                slider.setAttribute('min', min.toString());
-                slider.setAttribute('max', max.toString());
-                slider.setAttribute('step', step.toString());
-                slider.value = value.toString();
-            }
-            break;
-        } while (true);
-        slider.dispatchEvent(new Event('input'));
-        return true;
-    }
-    static Modified() {
-        if (Main._edit == false) {
-            Main._button_commit.removeAttribute('disabled');
-            Main._button_revert.removeAttribute('disabled');
-            Main._button_clear.removeAttribute('disabled');
-            Main._edit = true;
-        }
-    }
-    static confirm_removing_module() {
-        var delete_ok = false;
-        if (Main._canvas.drag_module.removable == true) {
-            Main._display_prompt = true;
-            delete_ok = confirm('May the module be deleted?');
-            Main._display_prompt = false;
-        }
-        if (delete_ok == true) {
-            Main._canvas._module_arr.pop().removeModule();
-            Main._canvas.calc_module_order();
-        }
-        else {
-            Main._canvas.cancel_module_drag();
-        }
-    }
-    static quick_edit_input(input) {
-        var org_busName = '';
-        if (input.quick_const != '') {
-            org_busName = input.quick_const;
-        }
-        else if (input.prev_output != null) {
-            org_busName = input.prev_output.quick_bus_name;
-        }
-        Main._display_prompt = true;
-        var q_bus_or_const_name = prompt('Input QuickBus or QuickConst.', org_busName);
-        Main._display_prompt = false;
-        if (q_bus_or_const_name != null && q_bus_or_const_name != org_busName) {
-            if (q_bus_or_const_name == '') {
-                input.update_quick_const('', 0.0);
-                if (input.prev_output != null) {
-                    input.prev_output.disconnect_quickbus(input);
-                }
-            }
-            else {
-                var q_const = Number(q_bus_or_const_name);
-                if (isNaN(q_const) == false) {
-                    if (input.prev_output != null) {
-                        input.prev_output.disconnect_quickbus(input);
-                    }
-                    input.update_quick_const(q_bus_or_const_name, q_const);
-                }
-                else {
-                    input.update_quick_const('', 0.0);
-                    var new_output = Main._canvas.getResisterdQuickBus(q_bus_or_const_name);
-                    if (new_output != null) {
-                        if (input.prev_output != null) {
-                            input.prev_output.disconnect_quickbus(input);
-                        }
-                        if (input.module.isLoop(new_output.module)) {
-                            alert('A recursive loop was detected.');
-                        }
-                        else {
-                            new_output.connect_quickbus(input);
-                        }
-                    }
-                    else {
-                        alert('The input name is not registered as QuickBus.');
-                    }
-                }
-            }
-            Main._canvas.calc_module_order();
-        }
-    }
-    static quick_edit_output(output) {
-        Main._display_prompt = true;
-        var q_bus_name = prompt('Input QuickBus.', output.quick_bus_name);
-        Main._display_prompt = false;
-        if (q_bus_name != null && q_bus_name != output.quick_bus_name) {
-            if (q_bus_name == '') {
-                output.disconnect_quickbus();
-            }
-            else {
-                var q_const = Number(q_bus_name);
-                if (isNaN(q_const)) {
-                    var used_output = Main._canvas.getResisterdQuickBus(q_bus_name);
-                    if (used_output != null) {
-                        alert('The input name has been already registered as QuickBus.');
-                    }
-                    else {
-                        output.quick_bus_name = q_bus_name;
-                    }
-                }
-                else {
-                    alert('The input name has an error as QuickBus.');
-                }
-            }
-            Main._canvas.calc_module_order();
-        }
-    }
-    static mousedown(e) {
-        if (e.button != 0) {
-            return;
-        }
-        Main._moved = false;
-        var offset = Main.getOffset(e);
-        var connected_input = Main._canvas.getConnectedInput(offset);
-        if (connected_input != null) {
-            var output = connected_input.prev_output;
-            output.disconnect(connected_input);
-            Main._canvas.calc_module_order();
-            Main._canvas.start_cable_drag(output, null);
-            Main._moved = true;
-        }
-        else {
-            var input = Main._canvas.getHitModuleInput(offset);
-            if (input != null) {
-                Main._canvas.start_cable_drag(null, input);
-            }
-            else {
-                var output = Main._canvas.getHitModuleOutput(offset);
-                if (output != null) {
-                    Main._canvas.start_cable_drag(output, null);
-                }
-                else {
-                    var module = Main._canvas.getHitModule(offset);
-                    if (module != null) {
-                        Main._canvas._module_arr.splice(Main._canvas._module_arr.indexOf(module), 1);
-                        Main._canvas._module_arr.push(module);
-                        Main._canvas.start_module_drag(module, offset.x, offset.y);
-                    }
-                    else {
-                        var original_module = Main._canvas.getHitModule2222(offset);
-                        if (original_module != null) {
-                            Main._canvas.start_module_drag(original_module, offset.x, offset.y);
-                        }
-                    }
-                }
-            }
-            Main._moved = false;
-        }
-    }
-    static mousemove(e) {
-        if (Main._display_prompt == true) {
-            return;
-        }
-        var offset = Main.getOffset(e);
-        if (Main._canvas.is_cable_dragging() == false && Main._canvas.drag_module == null) {
-            return;
-        }
-        if (Main._canvas.is_cable_dragging()) {
-            var p = Main._canvas.get_cable_point();
-            Main._moved = Main._moved || (Main.squareDistance(p.x, p.y, offset.x, offset.y) >= 10 * 10);
-        }
-        else if (Main._canvas.drag_module != null) {
-            var all = (Main._canvas._original_module_arr.indexOf(Main._canvas.drag_module) >= 0);
-            var inside = Main._canvas.is_module_inside_view(all);
-            if (inside == false) {
-                Main.confirm_removing_module();
-                Main._canvas.drag_module = null;
-            }
-            else {
-                Main._canvas.end_module_drag(offset);
-            }
-        }
-        Main._canvas.redraw();
-        if (Main._canvas.is_cable_dragging()) {
-            var p = Main._canvas.get_cable_point();
-            Main._canvas.drawLine(p.x, p.y, offset.x, offset.y);
-        }
-    }
-    static mouseup(e) {
-        var offset = Main.getOffset(e);
-        Main.Modified();
-        if (Main._canvas.is_cable_dragging()) {
-            if (Main._canvas.end != null) {
-                if (Main._moved == false) {
-                    Main.quick_edit_input(Main._canvas.end);
-                }
-                else {
-                    if (Main._canvas.end.quick_const != '') {
-                    }
-                    else if (Main._canvas.end.prev_output != null) {
-                    }
-                    else {
-                        var output = Main._canvas.getHitModuleOutput(offset);
-                        if (output != null) {
-                            if (output.module != Main._canvas.end.module) {
-                                if (Main._canvas.end.module.isLoop(output.module)) {
-                                    alert('A recursive loop was detected.');
-                                }
-                                else {
-                                    output.connect(Main._canvas.end);
-                                    Main._canvas.calc_module_order();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else {
-                if (Main._moved == false) {
-                    Main.quick_edit_output(Main._canvas.start);
-                }
-                else {
-                    var input = Main._canvas.getHitModuleInput(offset);
-                    if (input != null) {
-                        if (input.quick_const != '') {
-                        }
-                        else {
-                            if (input.module != Main._canvas.start.module) {
-                                if (input.prev_output == null) {
-                                    if (input.module.isLoop(Main._canvas.start.module)) {
-                                        alert('A recursive loop was detected.');
-                                    }
-                                    else {
-                                        Main._canvas.start.connect(input);
-                                        Main._canvas.calc_module_order();
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            Main._canvas.start = null;
-            Main._canvas.end = null;
-        }
-        else if (Main._canvas.drag_module != null) {
-            if (Main._canvas._original_module_arr.indexOf(Main._canvas.drag_module) >= 0) {
-                var inside = Main._canvas.is_module_inside_view(false);
-                if (inside == true) {
-                    var org_m = Main._canvas.drag_module;
-                    var newmodule = Main._module_creator.CreateByName(org_m.name, org_m.x, org_m.y);
-                    Main._canvas._module_arr.push(newmodule);
-                }
-                Main._canvas.cancel_module_drag();
-            }
-            Main._canvas.drag_module = null;
-        }
-        Main._canvas.redraw();
-    }
-    static mouseout(e) {
-        if (Main._display_prompt == true) {
-            return;
-        }
-        if (Main._canvas.is_cable_dragging() == false && Main._canvas.drag_module == null) {
-            return;
-        }
-        if (Main._canvas.is_cable_dragging()) {
-            Main._canvas.start = null;
-            Main._canvas.end = null;
-        }
-        else if (Main._canvas.drag_module != null) {
-            Main.confirm_removing_module();
-            Main._canvas.drag_module = null;
-        }
-        Main._canvas.redraw();
-    }
-    static recent_backward_click() {
-        var aaa = Main._recent_loader.get_recent_backward();
-        if (aaa != null) {
-            Main._select_recent.textContent = '';
-            for (var option of aaa.recent_select) {
-                var option_element = document.createElement('option');
-                option_element.value = option.value;
-                option_element.text = option.html;
-                Main._select_recent.appendChild(option_element);
-            }
-            Main._recent_range.textContent = aaa.recent_range;
-        }
-    }
-    static recent_forward_click() {
-        var aaa = Main._recent_loader.get_recent_forward();
-        if (aaa != null) {
-            Main._select_recent.textContent = '';
-            for (var option of aaa.recent_select) {
-                var option_element = document.createElement('option');
-                option_element.value = option.value;
-                option_element.text = option.html;
-                Main._select_recent.appendChild(option_element);
-            }
-            Main._recent_range.textContent = aaa.recent_range;
-        }
-    }
-    static recent_load_click() {
-        var selected_index = Main._select_recent.selectedIndex;
-        var selected_option = Main._select_recent.options[selected_index];
-        location.href = location.pathname + '?' + selected_option.value;
-    }
-    static audio_error() {
-        alert('An abnormal input signal was detected.');
-        Main._wave_play.value = 'Play';
-        Main._wave_file.removeAttribute('disabled');
-    }
-    static wave_play_click() {
-        if (Main._wave_play.value == 'Stop') {
-            Main._audio_processor.stop();
-            Main._wave_play.value = 'Play';
-            Main._wave_save.removeAttribute('disabled');
-            Main._wave_file.removeAttribute('disabled');
-        }
-        else {
-            Main._wave_play.value = 'Stop';
-            Main._wave_save.setAttribute('disabled', 'disabled');
-            Main._wave_file.setAttribute('disabled', 'disabled');
-            for (var m of Main._canvas._module_arr) {
-                if (m.name == 'samplerate_module') {
-                    m.output_arr[0].value1 = Main._audio_context.sampleRate;
-                    m.output_arr[0].value2 = Main._audio_context.sampleRate;
-                    m.constant_update(true);
-                }
-                if (m.name == 'delay_module') {
-                    m.input_arr[0].value1 = 0.0;
-                    m.input_arr[0].value2 = 0.0;
-                }
-            }
-            Main._audio_processor.start(Main._decodedBuffer);
-        }
-    }
-    static wave_save_click() {
-        for (var m of Main._canvas._module_arr) {
-            if (m.name == 'samplerate_module') {
-                m.output_arr[0].value1 = Main._audio_context.sampleRate;
-                m.output_arr[0].value2 = Main._audio_context.sampleRate;
-                m.constant_update(true);
-            }
-            if (m.name == 'delay_module') {
-                m.input_arr[0].value1 = 0.0;
-                m.input_arr[0].value2 = 0.0;
-            }
-        }
-        var rander = new AudioWriter(Main._canvas, Main._decodedBuffer);
-        var wavebuf = rander.start();
-        if (wavebuf != null) {
-            var blob = new Blob([wavebuf], { "type": 'audio/wav' });
-            open(URL.createObjectURL(blob), "");
-        }
-        else {
-            alert("???");
-        }
-    }
-    static decodeFinished(buffer) {
-        Main._decodedBuffer = buffer;
-        Main._wave_play.removeAttribute('disabled');
-        Main._wave_save.removeAttribute('disabled');
-        Main._wave_file.removeAttribute('disabled');
-        return true;
-    }
-    ;
-    static wave_file_change(e) {
-        var _a;
-        Main._wave_play.setAttribute('disabled', 'disabled');
-        Main._wave_save.setAttribute('disabled', 'disabled');
-        var file_selector = e.target;
-        if (((_a = file_selector.files) === null || _a === void 0 ? void 0 : _a.length) == 0) {
-            return;
-        }
-        var audiofile = file_selector.files[0];
-        if (audiofile.type != 'audio/wav'
-            && audiofile.type != 'audio/ogg'
-            && audiofile.type != 'video/ogg') {
-            file_selector.value = '';
-            alert('Please select wav/ogg file.');
-            return;
-        }
-        Main._wave_file.setAttribute('disabled', 'disabled');
-        Main._audio_file_loader.load(audiofile);
-    }
-    static windowLoaded() {
-        Main._button_clear = document.getElementById('button_clear');
-        Main._button_commit = document.getElementById('button_commit');
-        Main._text_midi_msg = document.getElementById('text_midi_msg');
-        Main._button_ctrl1 = document.getElementById('button_ctrl1');
-        Main._button_ctrl2 = document.getElementById('button_ctrl2');
-        Main._button_ctrl3 = document.getElementById('button_ctrl3');
-        Main._button_learn1 = document.getElementById('button_learn1');
-        Main._button_learn2 = document.getElementById('button_learn2');
-        Main._button_learn3 = document.getElementById('button_learn3');
-        Main._button_revert = document.getElementById('button_revert');
-        Main._recent_backward = document.getElementById('recent_backward');
-        Main._recent_forward = document.getElementById('recent_forward');
-        Main._recent_load = document.getElementById('recent_load');
-        Main._recent_range = document.getElementById('recent_range');
-        Main._select_recent = document.getElementById('select_recent');
-        Main._slider_ctrl1 = document.getElementById('slider_ctrl1');
-        Main._slider_ctrl2 = document.getElementById('slider_ctrl2');
-        Main._slider_ctrl3 = document.getElementById('slider_ctrl3');
-        Main._slider_volume = document.getElementById('slider_volume');
-        Main._text_ctrl1 = document.getElementById('text_ctrl1');
-        Main._text_ctrl2 = document.getElementById('text_ctrl2');
-        Main._text_ctrl3 = document.getElementById('text_ctrl3');
-        Main._text_volume = document.getElementById('text_volume');
-        Main._wave_file = document.getElementById('wave_file');
-        Main._wave_play = document.getElementById('wave_play');
-        Main._wave_save = document.getElementById('wave_save');
-        Main._work_view = document.getElementById('work_view');
-        Main._wave_play.setAttribute('disabled', 'disabled');
-        Main._wave_save.setAttribute('disabled', 'disabled');
-        var navigator = window.navigator;
-        if (navigator.requestMIDIAccess) {
-            navigator.requestMIDIAccess().then(Main.onMIDIInit);
-        }
-        else {
-            alert("navigator.requestMIDIAccess == null");
-        }
-        Main._work_view.setAttribute('width', (800).toString());
-        Main._work_view.setAttribute('height', (400).toString());
-        Main._canvas = new ConnectionEditor(Main._work_view);
-        Main._recent_loader = new RecentLoader();
-        Main._recent_backward.addEventListener("click", Main.recent_backward_click);
-        Main._recent_forward.addEventListener("click", Main.recent_forward_click);
-        Main._recent_load.addEventListener("click", Main.recent_load_click);
-        Main._wave_play.addEventListener("click", Main.wave_play_click);
-        Main._wave_save.addEventListener("click", Main.wave_save_click);
-        Main._wave_file.addEventListener("change", Main.wave_file_change);
-        Main._slider_volume.addEventListener('input', (e) => {
-            var srt_value = Main._slider_volume.value;
-            Main._text_volume.textContent = srt_value;
-            Main._audio_processor.update_gain(parseFloat(srt_value));
-        });
-        Main._audio_context = new AudioContext();
-        if (Main._audio_context == null) {
-            Main._recent_backward.setAttribute('disabled', 'disabled');
-            Main._recent_forward.setAttribute('disabled', 'disabled');
-            Main._recent_load.setAttribute('disabled', 'disabled');
-            Main._button_ctrl1.setAttribute('disabled', 'disabled');
-            Main._button_ctrl2.setAttribute('disabled', 'disabled');
-            Main._button_ctrl3.setAttribute('disabled', 'disabled');
-            Main._button_commit.setAttribute('disabled', 'disabled');
-            Main._button_revert.setAttribute('disabled', 'disabled');
-            Main._button_clear.setAttribute('disabled', 'disabled');
-            return;
-        }
-        Main._audio_file_loader = new AudioFileReader(Main.decodeFinished, () => { });
-        Main._audio_processor = new AudioProcessor(Main._canvas, Main.audio_error);
-        Main._slider_volume.dispatchEvent(new Event('input'));
-        Main._work_view.addEventListener('mousedown', Main.mousedown);
-        Main._work_view.addEventListener('mousemove', Main.mousemove);
-        Main._work_view.addEventListener('mouseup', Main.mouseup);
-        Main._work_view.addEventListener('mouseout', Main.mouseout);
-        Main._button_ctrl1.addEventListener('click', () => {
-            var success = Main.editSlider(Main._slider_ctrl1);
-            if (success == true) {
-                Main.Modified();
-            }
-        });
-        Main._button_ctrl2.addEventListener('click', () => {
-            var success = Main.editSlider(Main._slider_ctrl2);
-            if (success == true) {
-                Main.Modified();
-            }
-        });
-        Main._button_ctrl3.addEventListener('click', () => {
-            var success = Main.editSlider(Main._slider_ctrl3);
-            if (success == true) {
-                Main.Modified();
-            }
-        });
-        Main._button_learn1.addEventListener('click', () => {
-            if (Main._current_midi_msg >= 0) {
-                Main._midi_learn1 = Main._current_midi_msg;
-            }
-        });
-        Main._button_learn2.addEventListener('click', () => {
-            if (Main._current_midi_msg >= 0) {
-                Main._midi_learn2 = Main._current_midi_msg;
-            }
-        });
-        Main._button_learn3.addEventListener('click', () => {
-            if (Main._current_midi_msg >= 0) {
-                Main._midi_learn3 = Main._current_midi_msg;
-            }
-        });
-        Main._slider_ctrl1.addEventListener('input', () => {
-            var str_value = Main._slider_ctrl1.value;
-            Main._text_ctrl1.textContent = str_value;
-            Main._canvas._ctrl_module_arr[0].value = parseFloat(str_value);
-            Main._canvas._ctrl_module_arr[0].constant_update(true);
-            Main.Modified();
-        });
-        Main._slider_ctrl2.addEventListener('input', () => {
-            var str_value = Main._slider_ctrl2.value;
-            Main._text_ctrl2.textContent = str_value;
-            Main._canvas._ctrl_module_arr[1].value = parseFloat(str_value);
-            Main._canvas._ctrl_module_arr[1].constant_update(true);
-            Main.Modified();
-        });
-        Main._slider_ctrl3.addEventListener('input', () => {
-            var str_value = Main._slider_ctrl3.value;
-            Main._text_ctrl3.textContent = str_value;
-            Main._canvas._ctrl_module_arr[2].value = parseFloat(str_value);
-            Main._canvas._ctrl_module_arr[2].constant_update(true);
-            Main.Modified();
-        });
-        Main._button_commit.addEventListener('click', () => {
-            var json_string = JSON.stringify(JsonConverter.getSaveObject(Main._canvas._module_arr, [Main._slider_ctrl1, Main._slider_ctrl2, Main._slider_ctrl3]));
-            var request = new XMLHttpRequest();
-            request.open('POST', 'commit.cgi', false);
-            request.send(json_string);
-            if (request.status == 200) {
-                location.href = location.pathname + '?' + request.response;
-            }
-            else {
-                alert('commit error');
-            }
-        });
-        Main._button_revert.addEventListener('click', () => {
-            location.reload(true);
-        });
-        Main._button_clear.addEventListener('click', () => {
-            location.href = location.pathname;
-        });
-        var name_list = [
-            'input_module',
-            'output_module',
-            'add_module',
-            'subtract_module',
-            'multiply_module',
-            'divide_module',
-            'sqrt_module',
-            'sin_module',
-            'cos_module',
-            'tan_module',
-            'samplerate_module',
-            'min_module',
-            'max_module',
-            'delay_module',
-            'control_module_1',
-            'control_module_2',
-            'control_module_3'
-        ];
-        ImageLoader.load(name_list, Main.Image_Loaded);
-    }
-    static Image_Loaded(img_map) {
-        Main._module_creator = new ModuleCreator(img_map);
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('add_module', 100, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('subtract_module', 150, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('multiply_module', 200, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('divide_module', 250, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('min_module', 300, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('max_module', 350, 10, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('delay_module', 400, 20, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('sqrt_module', 450, 20, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('sin_module', 500, 20, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('cos_module', 550, 20, false));
-        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('tan_module', 600, 20, false));
-        if (location.search.length > 0) {
-            var request = new XMLHttpRequest();
-            request.open('POST', 'load.cgi', false);
-            request.send(location.search.substring(1));
-            if (request.status != 200) {
-                alert('load error');
-                return;
-            }
-            if (request.response.length <= 0) {
-                location.href = location.pathname;
-                return;
-            }
-            try {
-                var loaded_data = JSON.parse(request.response);
-                Main._canvas._module_arr = JsonConverter.aaa(Main._module_creator, loaded_data);
-                Main._canvas._ctrl_module_arr = [];
-                for (var m of Main._canvas._module_arr) {
-                    if (m.name == 'control_module') {
-                        Main._canvas._ctrl_module_arr.push(m);
-                    }
-                    else if (m.name == 'input_module') {
-                        Main._canvas._input_module = m;
-                    }
-                    else if (m.name == 'output_module') {
-                        Main._canvas._output_module = m;
-                    }
-                }
-                var control_info = loaded_data.control_info;
-                for (var ctrl_idx = 0; ctrl_idx < control_info.length; ctrl_idx++) {
-                    var ctrl = control_info[ctrl_idx];
-                    var slider;
-                    if (ctrl_idx == 0) {
-                        slider = Main._slider_ctrl1;
-                    }
-                    else if (ctrl_idx == 1) {
-                        slider = Main._slider_ctrl2;
-                    }
-                    else if (ctrl_idx == 2) {
-                        slider = Main._slider_ctrl3;
-                    }
-                    else {
-                        return;
-                    }
-                    slider.setAttribute('min', ctrl.min);
-                    slider.setAttribute('max', ctrl.max);
-                    slider.setAttribute('step', ctrl.step);
-                    slider.value = ctrl.value;
-                    slider.dispatchEvent(new Event('input'));
-                }
-                Main._button_clear.removeAttribute('disabled');
-            }
-            catch (e) {
-                alert('データが不正です。');
-                location.href = location.pathname;
-            }
-        }
-        else {
-            var input_module = Main._module_creator.CreateByName('input_module', 4, 100, false);
-            Main._canvas._module_arr.push(input_module);
-            Main._canvas._input_module = input_module;
-            var output_module = Main._module_creator.CreateByName('output_module', 800 - 50, 100, false);
-            Main._canvas._module_arr.push(output_module);
-            Main._canvas._output_module = output_module;
-            var ctrl1_module = Main._module_creator.CreateByName('control_module', 4, 150, false);
-            Main._canvas._module_arr.push(ctrl1_module);
-            Main._canvas._ctrl_module_arr.push(ctrl1_module);
-            var ctrl2_module = Main._module_creator.CreateByName('control_module', 4, 200, false);
-            Main._canvas._module_arr.push(ctrl2_module);
-            Main._canvas._ctrl_module_arr.push(ctrl2_module);
-            var ctrl3_module = Main._module_creator.CreateByName('control_module', 4, 250, false);
-            Main._canvas._module_arr.push(ctrl3_module);
-            Main._canvas._ctrl_module_arr.push(ctrl3_module);
-            var samplerate_module = Main._module_creator.CreateByName('samplerate_module', 4, 300, false);
-            Main._canvas._module_arr.push(samplerate_module);
-            Main._canvas._samplerate_module = samplerate_module;
-            Main._slider_ctrl1.dispatchEvent(new Event('input'));
-            Main._slider_ctrl2.dispatchEvent(new Event('input'));
-            Main._slider_ctrl3.dispatchEvent(new Event('input'));
-        }
-        Main._button_commit.setAttribute('disabled', 'disabled');
-        Main._button_revert.setAttribute('disabled', 'disabled');
-        Main._wave_file.removeAttribute('disabled');
-        Main._canvas.redraw();
-        Main._edit = false;
-        Main._canvas.calc_module_order();
-        Main._recent_backward.click();
-    }
-    static onMIDIInit(m) {
-        var it = m.inputs.values();
-        var o = it.next();
-        while (o.done == false) {
-            document.getElementById('text_midi_in_device').textContent = o.value.name;
-            o.value.onmidimessage = Main.onmidimessage;
-            o = it.next();
-        }
-    }
-    static onmidimessage(e) {
-        Main._text_midi_msg.textContent =
-            '0x' + e.data[0].toString(16)
-                + ' 0x' + e.data[1].toString(16)
-                + ' 0x' + e.data[2].toString(16);
-        Main._current_midi_msg = e.data[1];
-        var t = e.data[2] / 127.0;
-        if (Main._midi_learn1 == Main._current_midi_msg) {
-            var min1 = parseFloat(Main._slider_ctrl1.getAttribute('min'));
-            var max1 = parseFloat(Main._slider_ctrl1.getAttribute('max'));
-            Main._slider_ctrl1.value = (min1 * (1 - t) + max1 * t).toString();
-            Main._slider_ctrl1.dispatchEvent(new Event('input'));
-        }
-        if (Main._midi_learn2 == Main._current_midi_msg) {
-            var min2 = parseFloat(Main._slider_ctrl2.getAttribute('min'));
-            var max2 = parseFloat(Main._slider_ctrl2.getAttribute('max'));
-            Main._slider_ctrl2.value = (min2 * (1 - t) + max2 * t).toString();
-            Main._slider_ctrl2.dispatchEvent(new Event('input'));
-        }
-        if (Main._midi_learn3 == Main._current_midi_msg) {
-            var min3 = parseFloat(Main._slider_ctrl3.getAttribute('min'));
-            var max3 = parseFloat(Main._slider_ctrl3.getAttribute('max'));
-            Main._slider_ctrl3.value = (min3 * (1 - t) + max3 * t).toString();
-            Main._slider_ctrl3.dispatchEvent(new Event('input'));
-        }
-    }
-}
-Main._display_prompt = false;
-Main._moved = false;
-Main._edit = false;
-Main._midi_learn1 = -1;
-Main._midi_learn2 = -1;
-Main._midi_learn3 = -1;
-window.onload = Main.windowLoaded;
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/main.ts");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./src/audioFileReader.ts":
+/*!********************************!*\
+  !*** ./src/audioFileReader.ts ***!
+  \********************************/
+/*! exports provided: AudioFileReader */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"AudioFileReader\", function() { return AudioFileReader; });\nclass AudioFileReader {\r\n    constructor(decodeFinished, decodeError) {\r\n        this.loadFinished = (loaded_evt) => {\r\n            var audio_context = new AudioContext();\r\n            audio_context.decodeAudioData(loaded_evt.target.result, this.decodeFinished, this.decodeError);\r\n        };\r\n        this.decodeFinished = decodeFinished;\r\n        this.decodeError = decodeError;\r\n    }\r\n    load(audio_file) {\r\n        var reader = new FileReader();\r\n        reader.onload = this.loadFinished;\r\n        reader.readAsArrayBuffer(audio_file);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/audioFileReader.ts?");
+
+/***/ }),
+
+/***/ "./src/audioProcessor.ts":
+/*!*******************************!*\
+  !*** ./src/audioProcessor.ts ***!
+  \*******************************/
+/*! exports provided: AudioProcessor */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"AudioProcessor\", function() { return AudioProcessor; });\nclass AudioProcessor {\r\n    constructor(canvas, abnormal_end) {\r\n        this.decoded_buffer = null;\r\n        this.pos = 0;\r\n        this.script_processor = null;\r\n        this.gain = 0.5;\r\n        this.audio_process = (e) => {\r\n            var output1_arr = e.outputBuffer.getChannelData(0);\r\n            var output2_arr = e.outputBuffer.getChannelData(1);\r\n            var input1_arr = this.decoded_buffer.getChannelData(0);\r\n            var input2_arr = this.decoded_buffer.getChannelData(1);\r\n            var module_sequence = this.canvas._module_seqence;\r\n            var breakdown = false;\r\n            for (var i = 0; i < 1024; i++) {\r\n                if (this.pos < this.decoded_buffer.length) {\r\n                    this.canvas._input_module.value1 = input1_arr[this.pos] * this.gain;\r\n                    this.canvas._input_module.value2 = input2_arr[this.pos] * this.gain;\r\n                    this.pos++;\r\n                    for (var m of module_sequence) {\r\n                        m.evaluate();\r\n                        for (var output of m.output_arr) {\r\n                            for (var next_input of output.next_input_arr) {\r\n                                next_input.value1 = output.value1;\r\n                                next_input.value2 = output.value2;\r\n                            }\r\n                            for (var next_input of output.quick_bus_next_input_arr) {\r\n                                next_input.value1 = output.value1;\r\n                                next_input.value2 = output.value2;\r\n                            }\r\n                        }\r\n                    }\r\n                    if (breakdown == false &&\r\n                        -10 < this.canvas._output_module.value1 && this.canvas._output_module.value1 < 10 &&\r\n                        -10 < this.canvas._output_module.value2 && this.canvas._output_module.value2 < 10) {\r\n                        output1_arr[i] = this.canvas._output_module.value1;\r\n                        output2_arr[i] = this.canvas._output_module.value2;\r\n                    }\r\n                    else {\r\n                        breakdown = true;\r\n                        output1_arr[i] = output2_arr[i] = 0.0;\r\n                    }\r\n                }\r\n                else {\r\n                    output1_arr[i] = output2_arr[i] = 0.0;\r\n                }\r\n            }\r\n            if (breakdown) {\r\n                this.stop();\r\n                this.abnormal_end();\r\n            }\r\n        };\r\n        this.canvas = canvas;\r\n        this.audio_context = new AudioContext();\r\n        this.abnormal_end = abnormal_end;\r\n    }\r\n    update_gain(gain) {\r\n        this.gain = gain;\r\n    }\r\n    start(decoded_buffer) {\r\n        this.decoded_buffer = decoded_buffer;\r\n        this.pos = 0;\r\n        this.script_processor = this.audio_context.createScriptProcessor(1024, 0, 2);\r\n        this.script_processor.onaudioprocess = this.audio_process;\r\n        this.script_processor.connect(this.audio_context.destination, 0, 0);\r\n    }\r\n    stop() {\r\n        this.script_processor.disconnect(0);\r\n        this.script_processor.onaudioprocess = null;\r\n        this.script_processor = null;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/audioProcessor.ts?");
+
+/***/ }),
+
+/***/ "./src/audioWriter.ts":
+/*!****************************!*\
+  !*** ./src/audioWriter.ts ***!
+  \****************************/
+/*! exports provided: AudioWriter */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"AudioWriter\", function() { return AudioWriter; });\nclass AudioWriter {\r\n    constructor(canvas, decoded_buffer) {\r\n        this.canvas = canvas;\r\n        this.decoded_buffer = decoded_buffer;\r\n    }\r\n    start() {\r\n        var output = new Float32Array(2 * this.decoded_buffer.length);\r\n        var input1_arr = this.decoded_buffer.getChannelData(0);\r\n        var input2_arr = this.decoded_buffer.getChannelData(1);\r\n        var module_sequence = this.canvas._module_seqence;\r\n        var maxvalue = 0.0;\r\n        for (var i = 0; i < this.decoded_buffer.length; i++) {\r\n            this.canvas._input_module.value1 = input1_arr[i];\r\n            this.canvas._input_module.value2 = input2_arr[i];\r\n            for (var m of module_sequence) {\r\n                m.evaluate();\r\n                for (var o of m.output_arr) {\r\n                    for (var next_input of o.next_input_arr) {\r\n                        next_input.value1 = o.value1;\r\n                        next_input.value2 = o.value2;\r\n                    }\r\n                    for (var next_input of o.quick_bus_next_input_arr) {\r\n                        next_input.value1 = o.value1;\r\n                        next_input.value2 = o.value2;\r\n                    }\r\n                }\r\n            }\r\n            if (-10 < this.canvas._output_module.value1 && this.canvas._output_module.value1 < 10 &&\r\n                -10 < this.canvas._output_module.value2 && this.canvas._output_module.value2 < 10) {\r\n                output[2 * i] = this.canvas._output_module.value1;\r\n                output[2 * i + 1] = this.canvas._output_module.value2;\r\n                if (maxvalue < Math.abs(this.canvas._output_module.value1))\r\n                    maxvalue = Math.abs(this.canvas._output_module.value1);\r\n                if (maxvalue < Math.abs(this.canvas._output_module.value2))\r\n                    maxvalue = Math.abs(this.canvas._output_module.value2);\r\n            }\r\n            else {\r\n                return null;\r\n            }\r\n        }\r\n        if (maxvalue == 0.0) {\r\n            return null;\r\n        }\r\n        var wavdata = new ArrayBuffer(44 + output.length * 2);\r\n        var view = new DataView(wavdata);\r\n        view.setUint8(0, 82);\r\n        view.setUint8(1, 73);\r\n        view.setUint8(2, 70);\r\n        view.setUint8(3, 70);\r\n        view.setUint32(4, 32 + this.decoded_buffer.length * 2, true);\r\n        view.setUint8(8, 87);\r\n        view.setUint8(9, 65);\r\n        view.setUint8(10, 86);\r\n        view.setUint8(11, 69);\r\n        view.setUint8(12, 102);\r\n        view.setUint8(13, 109);\r\n        view.setUint8(14, 116);\r\n        view.setUint8(15, 32);\r\n        view.setUint32(16, 16, true);\r\n        view.setUint16(20, 1, true);\r\n        view.setUint16(22, 2, true);\r\n        view.setUint32(24, Math.round(this.decoded_buffer.sampleRate), true);\r\n        view.setUint32(28, Math.round(this.decoded_buffer.sampleRate) * 4, true);\r\n        view.setUint16(32, 4, true);\r\n        view.setUint16(34, 16, true);\r\n        view.setUint8(36, 100);\r\n        view.setUint8(37, 97);\r\n        view.setUint8(38, 116);\r\n        view.setUint8(39, 97);\r\n        view.setUint32(40, output.length * 2, true);\r\n        for (var i = 0; i < output.length; i++) {\r\n            view.setInt16(44 + 2 * i, Math.round(output[i] * 32768 / maxvalue), true);\r\n        }\r\n        return wavdata;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/audioWriter.ts?");
+
+/***/ }),
+
+/***/ "./src/connectionEditor.ts":
+/*!*********************************!*\
+  !*** ./src/connectionEditor.ts ***!
+  \*********************************/
+/*! exports provided: ConnectionEditor */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"ConnectionEditor\", function() { return ConnectionEditor; });\nclass ConnectionEditor {\r\n    constructor(canvas) {\r\n        this.drag_module = null;\r\n        this.drag_module_offset_x = 0;\r\n        this.drag_module_offset_y = 0;\r\n        this.drag_module_prev_x = 0;\r\n        this.drag_module_prev_y = 0;\r\n        this.start = null;\r\n        this.end = null;\r\n        this._original_module_arr = [];\r\n        this._module_arr = [];\r\n        this._ctrl_module_arr = [];\r\n        this._input_module = null;\r\n        this._output_module = null;\r\n        this._samplerate_module = null;\r\n        this._module_seqence = [];\r\n        this.tol = 10;\r\n        this.canvas = canvas;\r\n        this.rendering_context = canvas.getContext(\"2d\");\r\n        this.canvas_height = canvas.height;\r\n        this.canvae_width = canvas.width;\r\n    }\r\n    start_cable_drag(start, end) {\r\n        this.start = start;\r\n        this.end = end;\r\n    }\r\n    get_cable_point() {\r\n        if (this.start != null) {\r\n            return this.start.get_point();\r\n        }\r\n        else if (this.end != null) {\r\n            return this.end.get_point();\r\n        }\r\n        return null;\r\n    }\r\n    is_cable_dragging() {\r\n        return (this.start != null || this.end != null);\r\n    }\r\n    start_module_drag(module, offset_x, offset_y) {\r\n        this.drag_module = module;\r\n        this.drag_module_offset_x = offset_x - module.x;\r\n        this.drag_module_offset_y = offset_y - module.y;\r\n        this.drag_module_prev_x = module.x;\r\n        this.drag_module_prev_y = module.y;\r\n    }\r\n    end_module_drag(offset) {\r\n        this.drag_module.move(offset.x - this.drag_module_offset_x, offset.y - this.drag_module_offset_y);\r\n    }\r\n    cancel_module_drag() {\r\n        this.drag_module.move(this.drag_module_prev_x, this.drag_module_prev_y);\r\n    }\r\n    redraw_modules(modules) {\r\n        for (var m of modules) {\r\n            this.rendering_context.drawImage(m.image, m.x, m.y);\r\n        }\r\n    }\r\n    drawBack() {\r\n        this.rendering_context.clearRect(0, 0, this.canvae_width, this.canvas_height);\r\n        this.rendering_context.beginPath();\r\n        this.rendering_context.lineWidth = 2;\r\n        this.rendering_context.strokeStyle = '#000000';\r\n        this.rendering_context.moveTo(0, 0);\r\n        this.rendering_context.lineTo(this.canvae_width - 1, 0);\r\n        this.rendering_context.lineTo(this.canvae_width - 1, this.canvas_height - 1);\r\n        this.rendering_context.lineTo(0, this.canvas_height - 1);\r\n        this.rendering_context.lineTo(0, 0);\r\n        this.rendering_context.moveTo(0, 50);\r\n        this.rendering_context.lineTo(this.canvae_width - 1, 50);\r\n        this.rendering_context.stroke();\r\n    }\r\n    drawLine(x1, y1, x2, y2, color = '#000000') {\r\n        this.rendering_context.beginPath();\r\n        this.rendering_context.lineWidth = 1;\r\n        this.rendering_context.strokeStyle = color;\r\n        this.rendering_context.moveTo(x1, y1);\r\n        this.rendering_context.lineTo(x2, y2);\r\n        this.rendering_context.stroke();\r\n    }\r\n    drawText(align, q_bus_name, x, y, color = '#000000') {\r\n        if (q_bus_name == '')\r\n            return;\r\n        this.rendering_context.beginPath();\r\n        this.rendering_context.lineWidth = 1;\r\n        this.rendering_context.strokeStyle = color;\r\n        this.rendering_context.moveTo(x, y);\r\n        if (align == 'left') {\r\n            this.rendering_context.lineTo(x + 5, y);\r\n        }\r\n        else {\r\n            this.rendering_context.lineTo(x - 5, y);\r\n        }\r\n        this.rendering_context.stroke();\r\n        this.rendering_context.fillStyle = color;\r\n        this.rendering_context.font = this.rendering_context.font.replace(/[0-9]+px /, '12px ');\r\n        this.rendering_context.textAlign = align;\r\n        if (align == 'left') {\r\n            this.rendering_context.fillText(q_bus_name, x + 7, y + 3);\r\n        }\r\n        else {\r\n            this.rendering_context.fillText(q_bus_name, x - 7, y + 3);\r\n        }\r\n    }\r\n    redraw_cables(module_arr) {\r\n        for (var module of module_arr) {\r\n            for (var output of module.output_arr) {\r\n                var p1 = output.get_point();\r\n                for (var next_input of output.next_input_arr) {\r\n                    var p2 = next_input.get_point();\r\n                    this.drawLine(p1.x, p1.y, p2.x, p2.y);\r\n                }\r\n                this.drawText('left', output.quick_bus_name, p1.x, p1.y);\r\n                for (var quick_bus_next_input of output.quick_bus_next_input_arr) {\r\n                    var p2 = quick_bus_next_input.get_point();\r\n                    this.drawText('right', output.quick_bus_name, p2.x, p2.y);\r\n                }\r\n            }\r\n            for (var input of module.input_arr) {\r\n                var p2 = input.get_point();\r\n                this.drawText('right', input.quick_const, p2.x, p2.y);\r\n            }\r\n        }\r\n    }\r\n    redraw() {\r\n        this.drawBack();\r\n        this.redraw_modules(this._module_arr);\r\n        this.redraw_modules(this._original_module_arr);\r\n        this.redraw_cables(this._module_arr);\r\n    }\r\n    squareDistance(x1, y1, x2, y2) {\r\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);\r\n    }\r\n    getConnectedInput(offset) {\r\n        for (var module of this._module_arr) {\r\n            for (var output of module.output_arr) {\r\n                for (var next_input of output.next_input_arr) {\r\n                    var p = next_input.get_point();\r\n                    if (this.squareDistance(p.x, p.y, offset.x, offset.y) < this.tol * this.tol) {\r\n                        return next_input;\r\n                    }\r\n                }\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getConnectedInputQuickBus(offset, module_arr, tol) {\r\n        for (var module of module_arr) {\r\n            for (var output of module.output_arr) {\r\n                for (var next_input of output.quick_bus_next_input_arr) {\r\n                    var p = next_input.get_point();\r\n                    if (this.squareDistance(p.x, p.y, offset.x, offset.y) < tol * tol) {\r\n                        return next_input;\r\n                    }\r\n                }\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getHitModuleOutput(offset) {\r\n        for (var m of this._module_arr) {\r\n            var k = m.hit_test_with_output(offset, this.tol);\r\n            if (k >= 0) {\r\n                return m.output_arr[k];\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getHitModuleInput(offset) {\r\n        for (var m of this._module_arr) {\r\n            var k = m.hit_test_with_input(offset, this.tol);\r\n            if (k >= 0) {\r\n                return m.input_arr[k];\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getHitModule(offset) {\r\n        for (var m of this._module_arr) {\r\n            if (m.hit_test_with_main(offset) == true) {\r\n                return m;\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getHitModule2222(offset) {\r\n        for (var m of this._original_module_arr) {\r\n            if (m.hit_test_with_main(offset) == true) {\r\n                return m;\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    getResisterdQuickBus(name) {\r\n        for (var module of this._module_arr) {\r\n            for (var output of module.output_arr) {\r\n                if (name == output.quick_bus_name) {\r\n                    return output;\r\n                }\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n    is_module_inside_view(big) {\r\n        if (this.drag_module == null)\r\n            return false;\r\n        var line_y = 0;\r\n        if (big == false) {\r\n            line_y = 50;\r\n        }\r\n        if (0 <= this.drag_module.x && this.drag_module.x + this.drag_module.w < this.canvae_width\r\n            && line_y <= this.drag_module.y && this.drag_module.y + this.drag_module.h < this.canvas_height) {\r\n            return true;\r\n        }\r\n        else {\r\n            return false;\r\n        }\r\n    }\r\n    calc_module_order() {\r\n        for (var module of this._module_arr) {\r\n            for (var input of module.input_arr) {\r\n                input.stream_updated = false;\r\n            }\r\n        }\r\n        var module_seqence = [];\r\n        for (var m of this._module_arr) {\r\n            if (m.name == 'delay_module') {\r\n                var delay_m = m;\r\n                module_seqence = module_seqence.concat(delay_m.delay_update());\r\n            }\r\n        }\r\n        this._module_seqence = module_seqence.concat(this._input_module.stream_update());\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/connectionEditor.ts?");
+
+/***/ }),
+
+/***/ "./src/imageLoader.ts":
+/*!****************************!*\
+  !*** ./src/imageLoader.ts ***!
+  \****************************/
+/*! exports provided: ImageLoader */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"ImageLoader\", function() { return ImageLoader; });\nclass ImageLoader {\r\n    static load(name_list, Image_Loaded) {\r\n        var loaded_image_prop = new Map();\r\n        var loaded_image_count = 0;\r\n        for (var a of name_list) {\r\n            loaded_image_prop.set(a, new Image());\r\n            loaded_image_prop.get(a).onload = (e) => {\r\n                loaded_image_count++;\r\n                if (name_list.length == loaded_image_count) {\r\n                    Image_Loaded(loaded_image_prop);\r\n                }\r\n            };\r\n            loaded_image_prop.get(a).src = 'img/' + a + '.png';\r\n        }\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/imageLoader.ts?");
+
+/***/ }),
+
+/***/ "./src/io/input.ts":
+/*!*************************!*\
+  !*** ./src/io/input.ts ***!
+  \*************************/
+/*! exports provided: Input */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Input\", function() { return Input; });\n/* harmony import */ var _ioBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ioBase */ \"./src/io/ioBase.ts\");\n\r\nclass Input extends _ioBase__WEBPACK_IMPORTED_MODULE_0__[\"IoBase\"] {\r\n    constructor(module, index) {\r\n        super(module, index);\r\n        this.prev_output = null;\r\n        this.constant = true;\r\n        this.quick_const = '';\r\n        this.stream_updated = false;\r\n    }\r\n    get_point() {\r\n        return this.module.get_input_point(this.index);\r\n    }\r\n    connect_with_output(output) {\r\n        this.prev_output = output;\r\n        this.value1 = output.value1;\r\n        this.value2 = output.value2;\r\n        this.constant = output.module.is_constant();\r\n        this.module.constant_update(true);\r\n    }\r\n    update_quick_const(quick_const, value) {\r\n        this.quick_const = quick_const;\r\n        this.value1 = value;\r\n        this.value2 = value;\r\n        this.module.constant_update(true);\r\n    }\r\n    disconnect_with_output() {\r\n        this.prev_output = null;\r\n        this.value1 = 0.0;\r\n        this.value2 = 0.0;\r\n        this.constant = true;\r\n        this.module.constant_update(true);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/io/input.ts?");
+
+/***/ }),
+
+/***/ "./src/io/ioBase.ts":
+/*!**************************!*\
+  !*** ./src/io/ioBase.ts ***!
+  \**************************/
+/*! exports provided: IoBase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"IoBase\", function() { return IoBase; });\nclass IoBase {\r\n    constructor(module, index) {\r\n        this.module = module;\r\n        this.index = index;\r\n        this.value1 = 0.0;\r\n        this.value2 = 0.0;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/io/ioBase.ts?");
+
+/***/ }),
+
+/***/ "./src/io/output.ts":
+/*!**************************!*\
+  !*** ./src/io/output.ts ***!
+  \**************************/
+/*! exports provided: Output */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Output\", function() { return Output; });\n/* harmony import */ var _ioBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ioBase */ \"./src/io/ioBase.ts\");\n\r\nclass Output extends _ioBase__WEBPACK_IMPORTED_MODULE_0__[\"IoBase\"] {\r\n    constructor(module, index) {\r\n        super(module, index);\r\n        this.next_input_arr = [];\r\n        this.quick_bus_name = '';\r\n        this.quick_bus_next_input_arr = [];\r\n    }\r\n    get_point() {\r\n        return this.module.get_output_point(this.index);\r\n    }\r\n    connect(input) {\r\n        input.connect_with_output(this);\r\n        this.next_input_arr.push(input);\r\n    }\r\n    connect_quickbus(input) {\r\n        input.connect_with_output(this);\r\n        this.quick_bus_next_input_arr.push(input);\r\n    }\r\n    disconnect(input = null) {\r\n        if (input == null) {\r\n            for (var i of this.next_input_arr) {\r\n                i.disconnect_with_output();\r\n            }\r\n            this.next_input_arr.length = 0;\r\n            return true;\r\n        }\r\n        var removeIndex = this.next_input_arr.indexOf(input);\r\n        if (removeIndex >= 0) {\r\n            input.disconnect_with_output();\r\n            this.next_input_arr.splice(removeIndex, 1);\r\n            return true;\r\n        }\r\n        return false;\r\n    }\r\n    disconnect_quickbus(input = null) {\r\n        if (input == null) {\r\n            for (var i of this.quick_bus_next_input_arr) {\r\n                i.disconnect_with_output();\r\n            }\r\n            this.quick_bus_next_input_arr.length = 0;\r\n            this.quick_bus_name = \"\";\r\n            return true;\r\n        }\r\n        var removeIndex = this.quick_bus_next_input_arr.indexOf(input);\r\n        if (removeIndex >= 0) {\r\n            input.disconnect_with_output();\r\n            this.quick_bus_next_input_arr.splice(removeIndex, 1);\r\n            return true;\r\n        }\r\n        return false;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/io/output.ts?");
+
+/***/ }),
+
+/***/ "./src/jsonConverter.ts":
+/*!******************************!*\
+  !*** ./src/jsonConverter.ts ***!
+  \******************************/
+/*! exports provided: JsonConverter */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"JsonConverter\", function() { return JsonConverter; });\nclass JsonConverter {\r\n    static getSaveObject(module_arr, ctrl_arr) {\r\n        var module_arr2 = module_arr.slice();\r\n        module_arr2.sort((m1, m2) => {\r\n            if (m1.name != \"control_module\" && m2.name != \"control_module\") {\r\n                return 0;\r\n            }\r\n            if (m1.name != \"control_module\") {\r\n                return 1;\r\n            }\r\n            if (m2.name != \"control_module\") {\r\n                return -1;\r\n            }\r\n            var ctrl1 = m1;\r\n            var ctrl2 = m2;\r\n            return ctrl1.idx - ctrl2.idx;\r\n        });\r\n        var module_json = module_arr2.map((module) => {\r\n            var outputs = module.output_arr.map((output) => {\r\n                var next_inputs = output.next_input_arr.map((next_input) => {\r\n                    var next_module_idx = module_arr2.indexOf(next_input.module);\r\n                    return { next_module_index: next_module_idx, next_input_index: next_input.index };\r\n                });\r\n                var quick_bus_next_inputs = output.quick_bus_next_input_arr.map((next_input) => {\r\n                    var next_module_idx = module_arr2.indexOf(next_input.module);\r\n                    return { next_module_index: next_module_idx, next_input_index: next_input.index };\r\n                });\r\n                return { next_inputs: next_inputs,\r\n                    quick_bus_name: output.quick_bus_name,\r\n                    quick_bus_next_inputs: quick_bus_next_inputs };\r\n            });\r\n            var inputs = module.input_arr.map((input) => {\r\n                return { quick_const: input.quick_const };\r\n            });\r\n            return { module_name: module.name,\r\n                module_x: module.x,\r\n                module_y: module.y - 50,\r\n                outputs: outputs,\r\n                inputs: inputs };\r\n        });\r\n        var ctrl_json = ctrl_arr.map((ctrl) => {\r\n            return { min: ctrl.getAttribute('min'),\r\n                max: ctrl.getAttribute('max'),\r\n                step: ctrl.getAttribute('step'),\r\n                value: ctrl.value };\r\n        });\r\n        return { module_info: module_json, control_info: ctrl_json };\r\n    }\r\n    static aaa(module_creator, loaded_data) {\r\n        var module_arr = [];\r\n        var module_info = loaded_data.module_info;\r\n        for (var m of module_info) {\r\n            var newmodule = module_creator.CreateByName(m.module_name, m.module_x, m.module_y + 50);\r\n            module_arr.push(newmodule);\r\n        }\r\n        for (var module_index = 0; module_index < loaded_data.module_info.length; module_index++) {\r\n            var m = loaded_data.module_info[module_index];\r\n            for (var input_index = 0; input_index < m.inputs.length; input_index++) {\r\n                var input = m.inputs[input_index];\r\n                if (input.quick_const != '') {\r\n                    module_arr[module_index].input_arr[input_index].quick_const = input.quick_const;\r\n                    module_arr[module_index].input_arr[input_index].value1 = parseFloat(input.quick_const);\r\n                    module_arr[module_index].input_arr[input_index].value2 = parseFloat(input.quick_const);\r\n                    module_arr[module_index].input_arr[input_index].module.constant_update(true);\r\n                }\r\n            }\r\n            for (var output_index = 0; output_index < m.outputs.length; output_index++) {\r\n                var output = m.outputs[output_index];\r\n                var next_inputs = output.next_inputs;\r\n                for (var next of next_inputs) {\r\n                    var next_input = module_arr[next.next_module_index].input_arr[next.next_input_index];\r\n                    module_arr[module_index].output_arr[output_index].connect(next_input);\r\n                }\r\n                var quick_bus_next_inputs = output.quick_bus_next_inputs;\r\n                for (var next of quick_bus_next_inputs) {\r\n                    var next_input = module_arr[next.next_module_index].input_arr[next.next_input_index];\r\n                    module_arr[module_index].output_arr[output_index].quick_bus_name = output.quick_bus_name;\r\n                    module_arr[module_index].output_arr[output_index].connect_quickbus(next_input);\r\n                }\r\n            }\r\n        }\r\n        return module_arr;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/jsonConverter.ts?");
+
+/***/ }),
+
+/***/ "./src/main.ts":
+/*!*********************!*\
+  !*** ./src/main.ts ***!
+  \*********************/
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _audioFileReader__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./audioFileReader */ \"./src/audioFileReader.ts\");\n/* harmony import */ var _audioProcessor__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./audioProcessor */ \"./src/audioProcessor.ts\");\n/* harmony import */ var _audioWriter__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./audioWriter */ \"./src/audioWriter.ts\");\n/* harmony import */ var _connectionEditor__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./connectionEditor */ \"./src/connectionEditor.ts\");\n/* harmony import */ var _imageLoader__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./imageLoader */ \"./src/imageLoader.ts\");\n/* harmony import */ var _jsonConverter__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./jsonConverter */ \"./src/jsonConverter.ts\");\n/* harmony import */ var _moduleCreator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./moduleCreator */ \"./src/moduleCreator.ts\");\n/* harmony import */ var _recentLoader__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./recentLoader */ \"./src/recentLoader.ts\");\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nclass Main {\r\n    static squareDistance(x1, y1, x2, y2) {\r\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);\r\n    }\r\n    static getOffset(e) {\r\n        var target = e.target;\r\n        return { x: e.pageX - target.offsetLeft, y: e.pageY - target.offsetTop };\r\n    }\r\n    static editSlider(slider) {\r\n        do {\r\n            var str = prompt('Input min, max, step.', slider.getAttribute('min') + ', ' + slider.getAttribute('max') + ', ' + slider.getAttribute('step'));\r\n            if (str == null) {\r\n                return false;\r\n            }\r\n            if (str == '') {\r\n                slider.setAttribute('min', '0.0');\r\n                slider.setAttribute('max', '1.0');\r\n                slider.setAttribute('step', '0.01');\r\n                slider.value = '0.5';\r\n            }\r\n            else {\r\n                var str_split = str.split(',');\r\n                if (str_split.length != 3) {\r\n                    continue;\r\n                }\r\n                var min_str = str_split[0];\r\n                var max_str = str_split[1];\r\n                var step_str = str_split[2];\r\n                var min = Number(min_str);\r\n                var max = Number(max_str);\r\n                var step = Number(step_str);\r\n                if (isNaN(min) || isNaN(max) || isNaN(step)) {\r\n                    continue;\r\n                }\r\n                if (min >= max) {\r\n                    continue;\r\n                }\r\n                if (step <= 0.0) {\r\n                    continue;\r\n                }\r\n                var value = parseFloat(slider.value);\r\n                if (value < min) {\r\n                    value = min;\r\n                }\r\n                else if (max < value) {\r\n                    value = max;\r\n                }\r\n                slider.setAttribute('min', min.toString());\r\n                slider.setAttribute('max', max.toString());\r\n                slider.setAttribute('step', step.toString());\r\n                slider.value = value.toString();\r\n            }\r\n            break;\r\n        } while (true);\r\n        slider.dispatchEvent(new Event('input'));\r\n        return true;\r\n    }\r\n    static Modified() {\r\n        if (Main._edit == false) {\r\n            Main._button_commit.removeAttribute('disabled');\r\n            Main._button_revert.removeAttribute('disabled');\r\n            Main._button_clear.removeAttribute('disabled');\r\n            Main._edit = true;\r\n        }\r\n    }\r\n    static confirm_removing_module() {\r\n        var delete_ok = false;\r\n        if (Main._canvas.drag_module.removable == true) {\r\n            Main._display_prompt = true;\r\n            delete_ok = confirm('May the module be deleted?');\r\n            Main._display_prompt = false;\r\n        }\r\n        if (delete_ok == true) {\r\n            Main._canvas._module_arr.pop().removeModule();\r\n            Main._canvas.calc_module_order();\r\n        }\r\n        else {\r\n            Main._canvas.cancel_module_drag();\r\n        }\r\n    }\r\n    static quick_edit_input(input) {\r\n        var org_busName = '';\r\n        if (input.quick_const != '') {\r\n            org_busName = input.quick_const;\r\n        }\r\n        else if (input.prev_output != null) {\r\n            org_busName = input.prev_output.quick_bus_name;\r\n        }\r\n        Main._display_prompt = true;\r\n        var q_bus_or_const_name = prompt('Input QuickBus or QuickConst.', org_busName);\r\n        Main._display_prompt = false;\r\n        if (q_bus_or_const_name != null && q_bus_or_const_name != org_busName) {\r\n            if (q_bus_or_const_name == '') {\r\n                input.update_quick_const('', 0.0);\r\n                if (input.prev_output != null) {\r\n                    input.prev_output.disconnect_quickbus(input);\r\n                }\r\n            }\r\n            else {\r\n                var q_const = Number(q_bus_or_const_name);\r\n                if (isNaN(q_const) == false) {\r\n                    if (input.prev_output != null) {\r\n                        input.prev_output.disconnect_quickbus(input);\r\n                    }\r\n                    input.update_quick_const(q_bus_or_const_name, q_const);\r\n                }\r\n                else {\r\n                    input.update_quick_const('', 0.0);\r\n                    var new_output = Main._canvas.getResisterdQuickBus(q_bus_or_const_name);\r\n                    if (new_output != null) {\r\n                        if (input.prev_output != null) {\r\n                            input.prev_output.disconnect_quickbus(input);\r\n                        }\r\n                        if (input.module.isLoop(new_output.module)) {\r\n                            alert('A recursive loop was detected.');\r\n                        }\r\n                        else {\r\n                            new_output.connect_quickbus(input);\r\n                        }\r\n                    }\r\n                    else {\r\n                        alert('The input name is not registered as QuickBus.');\r\n                    }\r\n                }\r\n            }\r\n            Main._canvas.calc_module_order();\r\n        }\r\n    }\r\n    static quick_edit_output(output) {\r\n        Main._display_prompt = true;\r\n        var q_bus_name = prompt('Input QuickBus.', output.quick_bus_name);\r\n        Main._display_prompt = false;\r\n        if (q_bus_name != null && q_bus_name != output.quick_bus_name) {\r\n            if (q_bus_name == '') {\r\n                output.disconnect_quickbus();\r\n            }\r\n            else {\r\n                var q_const = Number(q_bus_name);\r\n                if (isNaN(q_const)) {\r\n                    var used_output = Main._canvas.getResisterdQuickBus(q_bus_name);\r\n                    if (used_output != null) {\r\n                        alert('The input name has been already registered as QuickBus.');\r\n                    }\r\n                    else {\r\n                        output.quick_bus_name = q_bus_name;\r\n                    }\r\n                }\r\n                else {\r\n                    alert('The input name has an error as QuickBus.');\r\n                }\r\n            }\r\n            Main._canvas.calc_module_order();\r\n        }\r\n    }\r\n    static mousedown(e) {\r\n        if (e.button != 0) {\r\n            return;\r\n        }\r\n        Main._moved = false;\r\n        var offset = Main.getOffset(e);\r\n        var connected_input = Main._canvas.getConnectedInput(offset);\r\n        if (connected_input != null) {\r\n            var output = connected_input.prev_output;\r\n            output.disconnect(connected_input);\r\n            Main._canvas.calc_module_order();\r\n            Main._canvas.start_cable_drag(output, null);\r\n            Main._moved = true;\r\n        }\r\n        else {\r\n            var input = Main._canvas.getHitModuleInput(offset);\r\n            if (input != null) {\r\n                Main._canvas.start_cable_drag(null, input);\r\n            }\r\n            else {\r\n                var output = Main._canvas.getHitModuleOutput(offset);\r\n                if (output != null) {\r\n                    Main._canvas.start_cable_drag(output, null);\r\n                }\r\n                else {\r\n                    var module = Main._canvas.getHitModule(offset);\r\n                    if (module != null) {\r\n                        Main._canvas._module_arr.splice(Main._canvas._module_arr.indexOf(module), 1);\r\n                        Main._canvas._module_arr.push(module);\r\n                        Main._canvas.start_module_drag(module, offset.x, offset.y);\r\n                    }\r\n                    else {\r\n                        var original_module = Main._canvas.getHitModule2222(offset);\r\n                        if (original_module != null) {\r\n                            Main._canvas.start_module_drag(original_module, offset.x, offset.y);\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n            Main._moved = false;\r\n        }\r\n    }\r\n    static mousemove(e) {\r\n        if (Main._display_prompt == true) {\r\n            return;\r\n        }\r\n        var offset = Main.getOffset(e);\r\n        if (Main._canvas.is_cable_dragging() == false && Main._canvas.drag_module == null) {\r\n            return;\r\n        }\r\n        if (Main._canvas.is_cable_dragging()) {\r\n            var p = Main._canvas.get_cable_point();\r\n            Main._moved = Main._moved || (Main.squareDistance(p.x, p.y, offset.x, offset.y) >= 10 * 10);\r\n        }\r\n        else if (Main._canvas.drag_module != null) {\r\n            var all = (Main._canvas._original_module_arr.indexOf(Main._canvas.drag_module) >= 0);\r\n            var inside = Main._canvas.is_module_inside_view(all);\r\n            if (inside == false) {\r\n                Main.confirm_removing_module();\r\n                Main._canvas.drag_module = null;\r\n            }\r\n            else {\r\n                Main._canvas.end_module_drag(offset);\r\n            }\r\n        }\r\n        Main._canvas.redraw();\r\n        if (Main._canvas.is_cable_dragging()) {\r\n            var p = Main._canvas.get_cable_point();\r\n            Main._canvas.drawLine(p.x, p.y, offset.x, offset.y);\r\n        }\r\n    }\r\n    static mouseup(e) {\r\n        var offset = Main.getOffset(e);\r\n        Main.Modified();\r\n        if (Main._canvas.is_cable_dragging()) {\r\n            if (Main._canvas.end != null) {\r\n                if (Main._moved == false) {\r\n                    Main.quick_edit_input(Main._canvas.end);\r\n                }\r\n                else {\r\n                    if (Main._canvas.end.quick_const != '') {\r\n                    }\r\n                    else if (Main._canvas.end.prev_output != null) {\r\n                    }\r\n                    else {\r\n                        var output = Main._canvas.getHitModuleOutput(offset);\r\n                        if (output != null) {\r\n                            if (output.module != Main._canvas.end.module) {\r\n                                if (Main._canvas.end.module.isLoop(output.module)) {\r\n                                    alert('A recursive loop was detected.');\r\n                                }\r\n                                else {\r\n                                    output.connect(Main._canvas.end);\r\n                                    Main._canvas.calc_module_order();\r\n                                }\r\n                            }\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n            else {\r\n                if (Main._moved == false) {\r\n                    Main.quick_edit_output(Main._canvas.start);\r\n                }\r\n                else {\r\n                    var input = Main._canvas.getHitModuleInput(offset);\r\n                    if (input != null) {\r\n                        if (input.quick_const != '') {\r\n                        }\r\n                        else {\r\n                            if (input.module != Main._canvas.start.module) {\r\n                                if (input.prev_output == null) {\r\n                                    if (input.module.isLoop(Main._canvas.start.module)) {\r\n                                        alert('A recursive loop was detected.');\r\n                                    }\r\n                                    else {\r\n                                        Main._canvas.start.connect(input);\r\n                                        Main._canvas.calc_module_order();\r\n                                    }\r\n                                }\r\n                            }\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n            Main._canvas.start = null;\r\n            Main._canvas.end = null;\r\n        }\r\n        else if (Main._canvas.drag_module != null) {\r\n            if (Main._canvas._original_module_arr.indexOf(Main._canvas.drag_module) >= 0) {\r\n                var inside = Main._canvas.is_module_inside_view(false);\r\n                if (inside == true) {\r\n                    var org_m = Main._canvas.drag_module;\r\n                    var newmodule = Main._module_creator.CreateByName(org_m.name, org_m.x, org_m.y);\r\n                    Main._canvas._module_arr.push(newmodule);\r\n                }\r\n                Main._canvas.cancel_module_drag();\r\n            }\r\n            Main._canvas.drag_module = null;\r\n        }\r\n        Main._canvas.redraw();\r\n    }\r\n    static mouseout(e) {\r\n        if (Main._display_prompt == true) {\r\n            return;\r\n        }\r\n        if (Main._canvas.is_cable_dragging() == false && Main._canvas.drag_module == null) {\r\n            return;\r\n        }\r\n        if (Main._canvas.is_cable_dragging()) {\r\n            Main._canvas.start = null;\r\n            Main._canvas.end = null;\r\n        }\r\n        else if (Main._canvas.drag_module != null) {\r\n            Main.confirm_removing_module();\r\n            Main._canvas.drag_module = null;\r\n        }\r\n        Main._canvas.redraw();\r\n    }\r\n    static recent_backward_click() {\r\n        var aaa = Main._recent_loader.get_recent_backward();\r\n        if (aaa != null) {\r\n            Main._select_recent.textContent = '';\r\n            for (var option of aaa.recent_select) {\r\n                var option_element = document.createElement('option');\r\n                option_element.value = option.value;\r\n                option_element.text = option.html;\r\n                Main._select_recent.appendChild(option_element);\r\n            }\r\n            Main._recent_range.textContent = aaa.recent_range;\r\n        }\r\n    }\r\n    static recent_forward_click() {\r\n        var aaa = Main._recent_loader.get_recent_forward();\r\n        if (aaa != null) {\r\n            Main._select_recent.textContent = '';\r\n            for (var option of aaa.recent_select) {\r\n                var option_element = document.createElement('option');\r\n                option_element.value = option.value;\r\n                option_element.text = option.html;\r\n                Main._select_recent.appendChild(option_element);\r\n            }\r\n            Main._recent_range.textContent = aaa.recent_range;\r\n        }\r\n    }\r\n    static recent_load_click() {\r\n        var selected_index = Main._select_recent.selectedIndex;\r\n        var selected_option = Main._select_recent.options[selected_index];\r\n        location.href = location.pathname + '?' + selected_option.value;\r\n    }\r\n    static audio_error() {\r\n        alert('An abnormal input signal was detected.');\r\n        Main._wave_play.value = 'Play';\r\n        Main._wave_file.removeAttribute('disabled');\r\n    }\r\n    static wave_play_click() {\r\n        if (Main._wave_play.value == 'Stop') {\r\n            Main._audio_processor.stop();\r\n            Main._wave_play.value = 'Play';\r\n            Main._wave_save.removeAttribute('disabled');\r\n            Main._wave_file.removeAttribute('disabled');\r\n        }\r\n        else {\r\n            Main._wave_play.value = 'Stop';\r\n            Main._wave_save.setAttribute('disabled', 'disabled');\r\n            Main._wave_file.setAttribute('disabled', 'disabled');\r\n            for (var m of Main._canvas._module_arr) {\r\n                if (m.name == 'samplerate_module') {\r\n                    m.output_arr[0].value1 = Main._audio_context.sampleRate;\r\n                    m.output_arr[0].value2 = Main._audio_context.sampleRate;\r\n                    m.constant_update(true);\r\n                }\r\n                if (m.name == 'delay_module') {\r\n                    m.input_arr[0].value1 = 0.0;\r\n                    m.input_arr[0].value2 = 0.0;\r\n                }\r\n            }\r\n            Main._audio_processor.start(Main._decodedBuffer);\r\n        }\r\n    }\r\n    static wave_save_click() {\r\n        for (var m of Main._canvas._module_arr) {\r\n            if (m.name == 'samplerate_module') {\r\n                m.output_arr[0].value1 = Main._audio_context.sampleRate;\r\n                m.output_arr[0].value2 = Main._audio_context.sampleRate;\r\n                m.constant_update(true);\r\n            }\r\n            if (m.name == 'delay_module') {\r\n                m.input_arr[0].value1 = 0.0;\r\n                m.input_arr[0].value2 = 0.0;\r\n            }\r\n        }\r\n        var rander = new _audioWriter__WEBPACK_IMPORTED_MODULE_2__[\"AudioWriter\"](Main._canvas, Main._decodedBuffer);\r\n        var wavebuf = rander.start();\r\n        if (wavebuf != null) {\r\n            var blob = new Blob([wavebuf], { \"type\": 'audio/wav' });\r\n            open(URL.createObjectURL(blob), \"\");\r\n        }\r\n        else {\r\n            alert(\"???\");\r\n        }\r\n    }\r\n    static decodeFinished(buffer) {\r\n        Main._decodedBuffer = buffer;\r\n        Main._wave_play.removeAttribute('disabled');\r\n        Main._wave_save.removeAttribute('disabled');\r\n        Main._wave_file.removeAttribute('disabled');\r\n        return true;\r\n    }\r\n    ;\r\n    static wave_file_change(e) {\r\n        var _a;\r\n        Main._wave_play.setAttribute('disabled', 'disabled');\r\n        Main._wave_save.setAttribute('disabled', 'disabled');\r\n        var file_selector = e.target;\r\n        if (((_a = file_selector.files) === null || _a === void 0 ? void 0 : _a.length) == 0) {\r\n            return;\r\n        }\r\n        var audiofile = file_selector.files[0];\r\n        if (audiofile.type != 'audio/wav'\r\n            && audiofile.type != 'audio/ogg'\r\n            && audiofile.type != 'video/ogg') {\r\n            file_selector.value = '';\r\n            alert('Please select wav/ogg file.');\r\n            return;\r\n        }\r\n        Main._wave_file.setAttribute('disabled', 'disabled');\r\n        Main._audio_file_loader.load(audiofile);\r\n    }\r\n    static windowLoaded() {\r\n        Main._button_clear = document.getElementById('button_clear');\r\n        Main._button_commit = document.getElementById('button_commit');\r\n        Main._text_midi_msg = document.getElementById('text_midi_msg');\r\n        Main._button_ctrl1 = document.getElementById('button_ctrl1');\r\n        Main._button_ctrl2 = document.getElementById('button_ctrl2');\r\n        Main._button_ctrl3 = document.getElementById('button_ctrl3');\r\n        Main._button_learn1 = document.getElementById('button_learn1');\r\n        Main._button_learn2 = document.getElementById('button_learn2');\r\n        Main._button_learn3 = document.getElementById('button_learn3');\r\n        Main._button_revert = document.getElementById('button_revert');\r\n        Main._recent_backward = document.getElementById('recent_backward');\r\n        Main._recent_forward = document.getElementById('recent_forward');\r\n        Main._recent_load = document.getElementById('recent_load');\r\n        Main._recent_range = document.getElementById('recent_range');\r\n        Main._select_recent = document.getElementById('select_recent');\r\n        Main._slider_ctrl1 = document.getElementById('slider_ctrl1');\r\n        Main._slider_ctrl2 = document.getElementById('slider_ctrl2');\r\n        Main._slider_ctrl3 = document.getElementById('slider_ctrl3');\r\n        Main._slider_volume = document.getElementById('slider_volume');\r\n        Main._text_ctrl1 = document.getElementById('text_ctrl1');\r\n        Main._text_ctrl2 = document.getElementById('text_ctrl2');\r\n        Main._text_ctrl3 = document.getElementById('text_ctrl3');\r\n        Main._text_volume = document.getElementById('text_volume');\r\n        Main._wave_file = document.getElementById('wave_file');\r\n        Main._wave_play = document.getElementById('wave_play');\r\n        Main._wave_save = document.getElementById('wave_save');\r\n        Main._work_view = document.getElementById('work_view');\r\n        Main._wave_play.setAttribute('disabled', 'disabled');\r\n        Main._wave_save.setAttribute('disabled', 'disabled');\r\n        var navigator = window.navigator;\r\n        if (navigator.requestMIDIAccess) {\r\n            navigator.requestMIDIAccess().then(Main.onMIDIInit);\r\n        }\r\n        else {\r\n            alert(\"navigator.requestMIDIAccess == null\");\r\n        }\r\n        Main._work_view.setAttribute('width', (800).toString());\r\n        Main._work_view.setAttribute('height', (400).toString());\r\n        Main._canvas = new _connectionEditor__WEBPACK_IMPORTED_MODULE_3__[\"ConnectionEditor\"](Main._work_view);\r\n        Main._recent_loader = new _recentLoader__WEBPACK_IMPORTED_MODULE_7__[\"RecentLoader\"]();\r\n        Main._recent_backward.addEventListener(\"click\", Main.recent_backward_click);\r\n        Main._recent_forward.addEventListener(\"click\", Main.recent_forward_click);\r\n        Main._recent_load.addEventListener(\"click\", Main.recent_load_click);\r\n        Main._wave_play.addEventListener(\"click\", Main.wave_play_click);\r\n        Main._wave_save.addEventListener(\"click\", Main.wave_save_click);\r\n        Main._wave_file.addEventListener(\"change\", Main.wave_file_change);\r\n        Main._slider_volume.addEventListener('input', (e) => {\r\n            var srt_value = Main._slider_volume.value;\r\n            Main._text_volume.textContent = srt_value;\r\n            Main._audio_processor.update_gain(parseFloat(srt_value));\r\n        });\r\n        Main._audio_context = new AudioContext();\r\n        if (Main._audio_context == null) {\r\n            Main._recent_backward.setAttribute('disabled', 'disabled');\r\n            Main._recent_forward.setAttribute('disabled', 'disabled');\r\n            Main._recent_load.setAttribute('disabled', 'disabled');\r\n            Main._button_ctrl1.setAttribute('disabled', 'disabled');\r\n            Main._button_ctrl2.setAttribute('disabled', 'disabled');\r\n            Main._button_ctrl3.setAttribute('disabled', 'disabled');\r\n            Main._button_commit.setAttribute('disabled', 'disabled');\r\n            Main._button_revert.setAttribute('disabled', 'disabled');\r\n            Main._button_clear.setAttribute('disabled', 'disabled');\r\n            return;\r\n        }\r\n        Main._audio_file_loader = new _audioFileReader__WEBPACK_IMPORTED_MODULE_0__[\"AudioFileReader\"](Main.decodeFinished, () => { });\r\n        Main._audio_processor = new _audioProcessor__WEBPACK_IMPORTED_MODULE_1__[\"AudioProcessor\"](Main._canvas, Main.audio_error);\r\n        Main._slider_volume.dispatchEvent(new Event('input'));\r\n        Main._work_view.addEventListener('mousedown', Main.mousedown);\r\n        Main._work_view.addEventListener('mousemove', Main.mousemove);\r\n        Main._work_view.addEventListener('mouseup', Main.mouseup);\r\n        Main._work_view.addEventListener('mouseout', Main.mouseout);\r\n        Main._button_ctrl1.addEventListener('click', () => {\r\n            var success = Main.editSlider(Main._slider_ctrl1);\r\n            if (success == true) {\r\n                Main.Modified();\r\n            }\r\n        });\r\n        Main._button_ctrl2.addEventListener('click', () => {\r\n            var success = Main.editSlider(Main._slider_ctrl2);\r\n            if (success == true) {\r\n                Main.Modified();\r\n            }\r\n        });\r\n        Main._button_ctrl3.addEventListener('click', () => {\r\n            var success = Main.editSlider(Main._slider_ctrl3);\r\n            if (success == true) {\r\n                Main.Modified();\r\n            }\r\n        });\r\n        Main._button_learn1.addEventListener('click', () => {\r\n            if (Main._current_midi_msg >= 0) {\r\n                Main._midi_learn1 = Main._current_midi_msg;\r\n            }\r\n        });\r\n        Main._button_learn2.addEventListener('click', () => {\r\n            if (Main._current_midi_msg >= 0) {\r\n                Main._midi_learn2 = Main._current_midi_msg;\r\n            }\r\n        });\r\n        Main._button_learn3.addEventListener('click', () => {\r\n            if (Main._current_midi_msg >= 0) {\r\n                Main._midi_learn3 = Main._current_midi_msg;\r\n            }\r\n        });\r\n        Main._slider_ctrl1.addEventListener('input', () => {\r\n            var str_value = Main._slider_ctrl1.value;\r\n            Main._text_ctrl1.textContent = str_value;\r\n            Main._canvas._ctrl_module_arr[0].value = parseFloat(str_value);\r\n            Main._canvas._ctrl_module_arr[0].constant_update(true);\r\n            Main.Modified();\r\n        });\r\n        Main._slider_ctrl2.addEventListener('input', () => {\r\n            var str_value = Main._slider_ctrl2.value;\r\n            Main._text_ctrl2.textContent = str_value;\r\n            Main._canvas._ctrl_module_arr[1].value = parseFloat(str_value);\r\n            Main._canvas._ctrl_module_arr[1].constant_update(true);\r\n            Main.Modified();\r\n        });\r\n        Main._slider_ctrl3.addEventListener('input', () => {\r\n            var str_value = Main._slider_ctrl3.value;\r\n            Main._text_ctrl3.textContent = str_value;\r\n            Main._canvas._ctrl_module_arr[2].value = parseFloat(str_value);\r\n            Main._canvas._ctrl_module_arr[2].constant_update(true);\r\n            Main.Modified();\r\n        });\r\n        Main._button_commit.addEventListener('click', () => {\r\n            var json_string = JSON.stringify(_jsonConverter__WEBPACK_IMPORTED_MODULE_5__[\"JsonConverter\"].getSaveObject(Main._canvas._module_arr, [Main._slider_ctrl1, Main._slider_ctrl2, Main._slider_ctrl3]));\r\n            var request = new XMLHttpRequest();\r\n            request.open('POST', 'commit.cgi', false);\r\n            request.send(json_string);\r\n            if (request.status == 200) {\r\n                location.href = location.pathname + '?' + request.response;\r\n            }\r\n            else {\r\n                alert('commit error');\r\n            }\r\n        });\r\n        Main._button_revert.addEventListener('click', () => {\r\n            location.reload(true);\r\n        });\r\n        Main._button_clear.addEventListener('click', () => {\r\n            location.href = location.pathname;\r\n        });\r\n        var name_list = [\r\n            'input_module',\r\n            'output_module',\r\n            'add_module',\r\n            'subtract_module',\r\n            'multiply_module',\r\n            'divide_module',\r\n            'sqrt_module',\r\n            'sin_module',\r\n            'cos_module',\r\n            'tan_module',\r\n            'samplerate_module',\r\n            'min_module',\r\n            'max_module',\r\n            'delay_module',\r\n            'control_module_1',\r\n            'control_module_2',\r\n            'control_module_3'\r\n        ];\r\n        _imageLoader__WEBPACK_IMPORTED_MODULE_4__[\"ImageLoader\"].load(name_list, Main.Image_Loaded);\r\n    }\r\n    static Image_Loaded(img_map) {\r\n        Main._module_creator = new _moduleCreator__WEBPACK_IMPORTED_MODULE_6__[\"ModuleCreator\"](img_map);\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('add_module', 100, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('subtract_module', 150, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('multiply_module', 200, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('divide_module', 250, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('min_module', 300, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('max_module', 350, 10, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('delay_module', 400, 20, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('sqrt_module', 450, 20, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('sin_module', 500, 20, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('cos_module', 550, 20, false));\r\n        Main._canvas._original_module_arr.push(Main._module_creator.CreateByName('tan_module', 600, 20, false));\r\n        if (location.search.length > 0) {\r\n            var request = new XMLHttpRequest();\r\n            request.open('POST', 'load.cgi', false);\r\n            request.send(location.search.substring(1));\r\n            if (request.status != 200) {\r\n                alert('load error');\r\n                return;\r\n            }\r\n            if (request.response.length <= 0) {\r\n                location.href = location.pathname;\r\n                return;\r\n            }\r\n            try {\r\n                var loaded_data = JSON.parse(request.response);\r\n                Main._canvas._module_arr = _jsonConverter__WEBPACK_IMPORTED_MODULE_5__[\"JsonConverter\"].aaa(Main._module_creator, loaded_data);\r\n                Main._canvas._ctrl_module_arr = [];\r\n                for (var m of Main._canvas._module_arr) {\r\n                    if (m.name == 'control_module') {\r\n                        Main._canvas._ctrl_module_arr.push(m);\r\n                    }\r\n                    else if (m.name == 'input_module') {\r\n                        Main._canvas._input_module = m;\r\n                    }\r\n                    else if (m.name == 'output_module') {\r\n                        Main._canvas._output_module = m;\r\n                    }\r\n                }\r\n                var control_info = loaded_data.control_info;\r\n                for (var ctrl_idx = 0; ctrl_idx < control_info.length; ctrl_idx++) {\r\n                    var ctrl = control_info[ctrl_idx];\r\n                    var slider;\r\n                    if (ctrl_idx == 0) {\r\n                        slider = Main._slider_ctrl1;\r\n                    }\r\n                    else if (ctrl_idx == 1) {\r\n                        slider = Main._slider_ctrl2;\r\n                    }\r\n                    else if (ctrl_idx == 2) {\r\n                        slider = Main._slider_ctrl3;\r\n                    }\r\n                    else {\r\n                        return;\r\n                    }\r\n                    slider.setAttribute('min', ctrl.min);\r\n                    slider.setAttribute('max', ctrl.max);\r\n                    slider.setAttribute('step', ctrl.step);\r\n                    slider.value = ctrl.value;\r\n                    slider.dispatchEvent(new Event('input'));\r\n                }\r\n                Main._button_clear.removeAttribute('disabled');\r\n            }\r\n            catch (e) {\r\n                alert('データが不正です。');\r\n                location.href = location.pathname;\r\n            }\r\n        }\r\n        else {\r\n            var input_module = Main._module_creator.CreateByName('input_module', 4, 100, false);\r\n            Main._canvas._module_arr.push(input_module);\r\n            Main._canvas._input_module = input_module;\r\n            var output_module = Main._module_creator.CreateByName('output_module', 800 - 50, 100, false);\r\n            Main._canvas._module_arr.push(output_module);\r\n            Main._canvas._output_module = output_module;\r\n            var ctrl1_module = Main._module_creator.CreateByName('control_module', 4, 150, false);\r\n            Main._canvas._module_arr.push(ctrl1_module);\r\n            Main._canvas._ctrl_module_arr.push(ctrl1_module);\r\n            var ctrl2_module = Main._module_creator.CreateByName('control_module', 4, 200, false);\r\n            Main._canvas._module_arr.push(ctrl2_module);\r\n            Main._canvas._ctrl_module_arr.push(ctrl2_module);\r\n            var ctrl3_module = Main._module_creator.CreateByName('control_module', 4, 250, false);\r\n            Main._canvas._module_arr.push(ctrl3_module);\r\n            Main._canvas._ctrl_module_arr.push(ctrl3_module);\r\n            var samplerate_module = Main._module_creator.CreateByName('samplerate_module', 4, 300, false);\r\n            Main._canvas._module_arr.push(samplerate_module);\r\n            Main._canvas._samplerate_module = samplerate_module;\r\n            Main._slider_ctrl1.dispatchEvent(new Event('input'));\r\n            Main._slider_ctrl2.dispatchEvent(new Event('input'));\r\n            Main._slider_ctrl3.dispatchEvent(new Event('input'));\r\n        }\r\n        Main._button_commit.setAttribute('disabled', 'disabled');\r\n        Main._button_revert.setAttribute('disabled', 'disabled');\r\n        Main._wave_file.removeAttribute('disabled');\r\n        Main._canvas.redraw();\r\n        Main._edit = false;\r\n        Main._canvas.calc_module_order();\r\n        Main._recent_backward.click();\r\n    }\r\n    static onMIDIInit(m) {\r\n        var it = m.inputs.values();\r\n        var o = it.next();\r\n        while (o.done == false) {\r\n            document.getElementById('text_midi_in_device').textContent = o.value.name;\r\n            o.value.onmidimessage = Main.onmidimessage;\r\n            o = it.next();\r\n        }\r\n    }\r\n    static onmidimessage(e) {\r\n        Main._text_midi_msg.textContent =\r\n            '0x' + e.data[0].toString(16)\r\n                + ' 0x' + e.data[1].toString(16)\r\n                + ' 0x' + e.data[2].toString(16);\r\n        Main._current_midi_msg = e.data[1];\r\n        var t = e.data[2] / 127.0;\r\n        if (Main._midi_learn1 == Main._current_midi_msg) {\r\n            var min1 = parseFloat(Main._slider_ctrl1.getAttribute('min'));\r\n            var max1 = parseFloat(Main._slider_ctrl1.getAttribute('max'));\r\n            Main._slider_ctrl1.value = (min1 * (1 - t) + max1 * t).toString();\r\n            Main._slider_ctrl1.dispatchEvent(new Event('input'));\r\n        }\r\n        if (Main._midi_learn2 == Main._current_midi_msg) {\r\n            var min2 = parseFloat(Main._slider_ctrl2.getAttribute('min'));\r\n            var max2 = parseFloat(Main._slider_ctrl2.getAttribute('max'));\r\n            Main._slider_ctrl2.value = (min2 * (1 - t) + max2 * t).toString();\r\n            Main._slider_ctrl2.dispatchEvent(new Event('input'));\r\n        }\r\n        if (Main._midi_learn3 == Main._current_midi_msg) {\r\n            var min3 = parseFloat(Main._slider_ctrl3.getAttribute('min'));\r\n            var max3 = parseFloat(Main._slider_ctrl3.getAttribute('max'));\r\n            Main._slider_ctrl3.value = (min3 * (1 - t) + max3 * t).toString();\r\n            Main._slider_ctrl3.dispatchEvent(new Event('input'));\r\n        }\r\n    }\r\n}\r\nMain._display_prompt = false;\r\nMain._moved = false;\r\nMain._edit = false;\r\nMain._midi_learn1 = -1;\r\nMain._midi_learn2 = -1;\r\nMain._midi_learn3 = -1;\r\nwindow.onload = Main.windowLoaded;\r\n\n\n//# sourceURL=webpack:///./src/main.ts?");
+
+/***/ }),
+
+/***/ "./src/module/addModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/addModule.ts ***!
+  \*********************************/
+/*! exports provided: AddModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"AddModule\", function() { return AddModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass AddModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('add_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 + this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 + this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/addModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/controlModule.ts":
+/*!*************************************!*\
+  !*** ./src/module/controlModule.ts ***!
+  \*************************************/
+/*! exports provided: ControlModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"ControlModule\", function() { return ControlModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass ControlModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, img, idx) {\r\n        super('control_module', x, y, 0, 1, false, img);\r\n        this.value = 0.5;\r\n        this.idx = idx;\r\n    }\r\n    move(x, y) {\r\n        this.y = y;\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.value;\r\n        this.output_arr[0].value2 = this.value;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/controlModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/cosModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/cosModule.ts ***!
+  \*********************************/
+/*! exports provided: CosModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"CosModule\", function() { return CosModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass CosModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('cos_module', x, y, 1, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = Math.cos(this.input_arr[0].value1);\r\n        this.output_arr[0].value2 = Math.cos(this.input_arr[0].value2);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/cosModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/delayModule.ts":
+/*!***********************************!*\
+  !*** ./src/module/delayModule.ts ***!
+  \***********************************/
+/*! exports provided: DelayModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"DelayModule\", function() { return DelayModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass DelayModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('delay_module', x, y, 1, 1, removable, img);\r\n        this.is_delay = true;\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 + 1.0e-100;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 + 1.0e-100;\r\n    }\r\n    is_constant() {\r\n        return false;\r\n    }\r\n    stream_update() {\r\n        return [];\r\n    }\r\n    delay_update() {\r\n        var order = [this];\r\n        for (var output of this.output_arr) {\r\n            for (var next_input of output.next_input_arr) {\r\n                next_input.stream_updated = true;\r\n                order = order.concat(next_input.module.stream_update());\r\n            }\r\n            for (var next_input of output.quick_bus_next_input_arr) {\r\n                next_input.stream_updated = true;\r\n                order = order.concat(next_input.module.stream_update());\r\n            }\r\n        }\r\n        return order;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/delayModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/divideModule.ts":
+/*!************************************!*\
+  !*** ./src/module/divideModule.ts ***!
+  \************************************/
+/*! exports provided: DivideModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"DivideModule\", function() { return DivideModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass DivideModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('divide_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 / this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 / this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/divideModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/inputModule.ts":
+/*!***********************************!*\
+  !*** ./src/module/inputModule.ts ***!
+  \***********************************/
+/*! exports provided: InputModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"InputModule\", function() { return InputModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass InputModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, img) {\r\n        super('input_module', x, y, 0, 1, false, img);\r\n        this.value1 = 0.0;\r\n        this.value2 = 0.0;\r\n    }\r\n    move(x, y) {\r\n        this.y = y;\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.value1;\r\n        this.output_arr[0].value2 = this.value2;\r\n    }\r\n    is_constant() {\r\n        return false;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/inputModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/maxModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/maxModule.ts ***!
+  \*********************************/
+/*! exports provided: MaxModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"MaxModule\", function() { return MaxModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass MaxModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('max_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 > this.input_arr[1].value1 ? this.input_arr[0].value1 : this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 > this.input_arr[1].value2 ? this.input_arr[0].value2 : this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/maxModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/minModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/minModule.ts ***!
+  \*********************************/
+/*! exports provided: MinModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"MinModule\", function() { return MinModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass MinModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('min_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 < this.input_arr[1].value1 ? this.input_arr[0].value1 : this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 < this.input_arr[1].value2 ? this.input_arr[0].value2 : this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/minModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/moduleBase.ts":
+/*!**********************************!*\
+  !*** ./src/module/moduleBase.ts ***!
+  \**********************************/
+/*! exports provided: ModuleBase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"ModuleBase\", function() { return ModuleBase; });\n/* harmony import */ var _io_input__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../io/input */ \"./src/io/input.ts\");\n/* harmony import */ var _io_output__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../io/output */ \"./src/io/output.ts\");\n\r\n\r\nclass ModuleBase {\r\n    constructor(name, x, y, num_in, num_out, removable, image) {\r\n        this.name = name;\r\n        this.x = x;\r\n        this.y = y;\r\n        this.w = image.width;\r\n        this.h = image.height;\r\n        this.input_arr = [];\r\n        for (var i = 0; i < num_in; i++) {\r\n            this.input_arr.push(new _io_input__WEBPACK_IMPORTED_MODULE_0__[\"Input\"](this, i));\r\n        }\r\n        this.output_arr = [];\r\n        for (var i = 0; i < num_out; i++) {\r\n            this.output_arr.push(new _io_output__WEBPACK_IMPORTED_MODULE_1__[\"Output\"](this, i));\r\n        }\r\n        this.removable = removable;\r\n        this.is_delay = false;\r\n        this.image = image;\r\n    }\r\n    squareDistance(x1, y1, x2, y2) {\r\n        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);\r\n    }\r\n    is_constant() {\r\n        return this.input_arr.every(input => input.constant);\r\n    }\r\n    constant_update(first) {\r\n        if (this.is_delay == true && first == false) {\r\n            return;\r\n        }\r\n        var is_constant = this.is_constant();\r\n        if (is_constant == true) {\r\n            this.evaluate();\r\n        }\r\n        for (var output of this.output_arr) {\r\n            for (var next_input of output.next_input_arr) {\r\n                if (is_constant == true) {\r\n                    next_input.value1 = output.value1;\r\n                    next_input.value2 = output.value2;\r\n                }\r\n                next_input.constant = is_constant;\r\n                next_input.module.constant_update(false);\r\n            }\r\n            for (var next_input of output.quick_bus_next_input_arr) {\r\n                if (is_constant == true) {\r\n                    next_input.value1 = output.value1;\r\n                    next_input.value2 = output.value2;\r\n                }\r\n                next_input.constant = is_constant;\r\n                next_input.module.constant_update(false);\r\n            }\r\n        }\r\n    }\r\n    stream_update() {\r\n        var order = [];\r\n        var update = this.input_arr.every(input => input.constant || input.stream_updated);\r\n        if (update == true) {\r\n            order.push(this);\r\n            for (var output of this.output_arr) {\r\n                for (var next_input of output.next_input_arr) {\r\n                    next_input.stream_updated = true;\r\n                    order = order.concat(next_input.module.stream_update());\r\n                }\r\n                for (var next_input of output.quick_bus_next_input_arr) {\r\n                    next_input.stream_updated = true;\r\n                    order = order.concat(next_input.module.stream_update());\r\n                }\r\n            }\r\n        }\r\n        return order;\r\n    }\r\n    isLoop(prev_module) {\r\n        if (this.is_delay == true) {\r\n            return false;\r\n        }\r\n        if (prev_module == this) {\r\n            return true;\r\n        }\r\n        for (var output of this.output_arr) {\r\n            for (var next_input of output.next_input_arr) {\r\n                var loop = next_input.module.isLoop(prev_module);\r\n                if (loop == true) {\r\n                    return true;\r\n                }\r\n            }\r\n            for (var next_input of output.quick_bus_next_input_arr) {\r\n                var loop = next_input.module.isLoop(prev_module);\r\n                if (loop == true) {\r\n                    return true;\r\n                }\r\n            }\r\n        }\r\n        return false;\r\n    }\r\n    get_input_point(index) {\r\n        var x = this.x;\r\n        var interval_h = this.h / this.input_arr.length;\r\n        var y = Math.round(this.y + (index + 0.5) * interval_h);\r\n        return { x: x, y: y };\r\n    }\r\n    get_output_point(index) {\r\n        var x = this.x + this.w;\r\n        var interval_h = this.h / this.output_arr.length;\r\n        var y = Math.round(this.y + (index + 0.5) * interval_h);\r\n        return { x: x, y: y };\r\n    }\r\n    hit_test_with_input(offset, tol) {\r\n        if (this.input_arr.length > 0) {\r\n            var point_x = this.x;\r\n            var interval_h = this.h / this.input_arr.length;\r\n            for (var i = 0; i < this.input_arr.length; i++) {\r\n                var point_y = Math.round(this.y + (i + 0.5) * interval_h);\r\n                if (this.squareDistance(point_x, point_y, offset.x, offset.y) < tol * tol) {\r\n                    return i;\r\n                }\r\n            }\r\n        }\r\n        return -1;\r\n    }\r\n    hit_test_with_output(offset, tol) {\r\n        if (this.output_arr.length > 0) {\r\n            var point_x = this.x + this.w;\r\n            var interval_h = this.h / this.output_arr.length;\r\n            for (var i = 0; i < this.output_arr.length; i++) {\r\n                var point_y = Math.round(this.y + (i + 0.5) * interval_h);\r\n                if (this.squareDistance(point_x, point_y, offset.x, offset.y) < tol * tol) {\r\n                    return i;\r\n                }\r\n            }\r\n        }\r\n        return -1;\r\n    }\r\n    hit_test_with_main(offset) {\r\n        if (this.x <= offset.x && offset.x <= this.x + this.w &&\r\n            this.y <= offset.y && offset.y <= this.y + this.h) {\r\n            return true;\r\n        }\r\n        else {\r\n            return false;\r\n        }\r\n    }\r\n    move(x, y) {\r\n        this.x = x;\r\n        this.y = y;\r\n    }\r\n    removeModule() {\r\n        for (var output of this.output_arr) {\r\n            output.disconnect();\r\n            output.disconnect_quickbus();\r\n        }\r\n        for (var input of this.input_arr) {\r\n            var prev_output = input.prev_output;\r\n            if (prev_output != null) {\r\n                var removed = prev_output.disconnect(input);\r\n                if (removed == false) {\r\n                    prev_output.disconnect_quickbus(input);\r\n                }\r\n            }\r\n        }\r\n    }\r\n    evaluate() {\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/moduleBase.ts?");
+
+/***/ }),
+
+/***/ "./src/module/multiplyModule.ts":
+/*!**************************************!*\
+  !*** ./src/module/multiplyModule.ts ***!
+  \**************************************/
+/*! exports provided: MultiplyModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"MultiplyModule\", function() { return MultiplyModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass MultiplyModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('multiply_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 * this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 * this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/multiplyModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/outputModule.ts":
+/*!************************************!*\
+  !*** ./src/module/outputModule.ts ***!
+  \************************************/
+/*! exports provided: OutputModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"OutputModule\", function() { return OutputModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass OutputModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, img) {\r\n        super('output_module', x, y, 1, 0, false, img);\r\n        this.value1 = 0.0;\r\n        this.value2 = 0.0;\r\n    }\r\n    move(x, y) {\r\n        this.y = y;\r\n    }\r\n    evaluate() {\r\n        this.value1 = this.input_arr[0].value1;\r\n        this.value2 = this.input_arr[0].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/outputModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/sampleRateModule.ts":
+/*!****************************************!*\
+  !*** ./src/module/sampleRateModule.ts ***!
+  \****************************************/
+/*! exports provided: SampleRateModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SampleRateModule\", function() { return SampleRateModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass SampleRateModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, img) {\r\n        super('samplerate_module', x, y, 0, 1, false, img);\r\n    }\r\n    move(x, y) {\r\n        this.y = y;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/sampleRateModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/sinModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/sinModule.ts ***!
+  \*********************************/
+/*! exports provided: SinModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SinModule\", function() { return SinModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass SinModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('sin_module', x, y, 1, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = Math.sin(this.input_arr[0].value1);\r\n        this.output_arr[0].value2 = Math.sin(this.input_arr[0].value2);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/sinModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/sqrtModule.ts":
+/*!**********************************!*\
+  !*** ./src/module/sqrtModule.ts ***!
+  \**********************************/
+/*! exports provided: SqrtModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SqrtModule\", function() { return SqrtModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass SqrtModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('sqrt_module', x, y, 1, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = Math.sqrt(this.input_arr[0].value1);\r\n        this.output_arr[0].value2 = Math.sqrt(this.input_arr[0].value2);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/sqrtModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/subtractModule.ts":
+/*!**************************************!*\
+  !*** ./src/module/subtractModule.ts ***!
+  \**************************************/
+/*! exports provided: SubtractModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SubtractModule\", function() { return SubtractModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass SubtractModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('subtract_module', x, y, 2, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = this.input_arr[0].value1 - this.input_arr[1].value1;\r\n        this.output_arr[0].value2 = this.input_arr[0].value2 - this.input_arr[1].value2;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/subtractModule.ts?");
+
+/***/ }),
+
+/***/ "./src/module/tanModule.ts":
+/*!*********************************!*\
+  !*** ./src/module/tanModule.ts ***!
+  \*********************************/
+/*! exports provided: TanModule */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"TanModule\", function() { return TanModule; });\n/* harmony import */ var _moduleBase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./moduleBase */ \"./src/module/moduleBase.ts\");\n\r\nclass TanModule extends _moduleBase__WEBPACK_IMPORTED_MODULE_0__[\"ModuleBase\"] {\r\n    constructor(x, y, removable, img) {\r\n        super('tan_module', x, y, 1, 1, removable, img);\r\n    }\r\n    evaluate() {\r\n        this.output_arr[0].value1 = Math.tan(this.input_arr[0].value1);\r\n        this.output_arr[0].value2 = Math.tan(this.input_arr[0].value2);\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/module/tanModule.ts?");
+
+/***/ }),
+
+/***/ "./src/moduleCreator.ts":
+/*!******************************!*\
+  !*** ./src/moduleCreator.ts ***!
+  \******************************/
+/*! exports provided: ModuleCreator */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"ModuleCreator\", function() { return ModuleCreator; });\n/* harmony import */ var _module_addModule__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./module/addModule */ \"./src/module/addModule.ts\");\n/* harmony import */ var _module_controlModule__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./module/controlModule */ \"./src/module/controlModule.ts\");\n/* harmony import */ var _module_cosModule__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./module/cosModule */ \"./src/module/cosModule.ts\");\n/* harmony import */ var _module_delayModule__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./module/delayModule */ \"./src/module/delayModule.ts\");\n/* harmony import */ var _module_divideModule__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./module/divideModule */ \"./src/module/divideModule.ts\");\n/* harmony import */ var _module_inputModule__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./module/inputModule */ \"./src/module/inputModule.ts\");\n/* harmony import */ var _module_multiplyModule__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./module/multiplyModule */ \"./src/module/multiplyModule.ts\");\n/* harmony import */ var _module_outputModule__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./module/outputModule */ \"./src/module/outputModule.ts\");\n/* harmony import */ var _module_sampleRateModule__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./module/sampleRateModule */ \"./src/module/sampleRateModule.ts\");\n/* harmony import */ var _module_sinModule__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./module/sinModule */ \"./src/module/sinModule.ts\");\n/* harmony import */ var _module_sqrtModule__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./module/sqrtModule */ \"./src/module/sqrtModule.ts\");\n/* harmony import */ var _module_subtractModule__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./module/subtractModule */ \"./src/module/subtractModule.ts\");\n/* harmony import */ var _module_tanModule__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./module/tanModule */ \"./src/module/tanModule.ts\");\n/* harmony import */ var _module_minModule__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./module/minModule */ \"./src/module/minModule.ts\");\n/* harmony import */ var _module_maxModule__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./module/maxModule */ \"./src/module/maxModule.ts\");\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\nclass ModuleCreator {\r\n    constructor(image_map) {\r\n        this.ctrl_count = 0;\r\n        this.image_map = image_map;\r\n    }\r\n    CreateByName(name, x, y, removable = true) {\r\n        if ('control_module' == name) {\r\n            this.ctrl_count++;\r\n            return new _module_controlModule__WEBPACK_IMPORTED_MODULE_1__[\"ControlModule\"](x, y, this.image_map.get(name + '_' + this.ctrl_count), this.ctrl_count);\r\n        }\r\n        else if ('input_module' == name) {\r\n            return new _module_inputModule__WEBPACK_IMPORTED_MODULE_5__[\"InputModule\"](x, y, this.image_map.get(name));\r\n        }\r\n        else if ('output_module' == name) {\r\n            return new _module_outputModule__WEBPACK_IMPORTED_MODULE_7__[\"OutputModule\"](x, y, this.image_map.get(name));\r\n        }\r\n        else if ('samplerate_module' == name) {\r\n            return new _module_sampleRateModule__WEBPACK_IMPORTED_MODULE_8__[\"SampleRateModule\"](x, y, this.image_map.get(name));\r\n        }\r\n        else if ('add_module' == name) {\r\n            return new _module_addModule__WEBPACK_IMPORTED_MODULE_0__[\"AddModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('subtract_module' == name) {\r\n            return new _module_subtractModule__WEBPACK_IMPORTED_MODULE_11__[\"SubtractModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('multiply_module' == name) {\r\n            return new _module_multiplyModule__WEBPACK_IMPORTED_MODULE_6__[\"MultiplyModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('divide_module' == name) {\r\n            return new _module_divideModule__WEBPACK_IMPORTED_MODULE_4__[\"DivideModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('sqrt_module' == name) {\r\n            return new _module_sqrtModule__WEBPACK_IMPORTED_MODULE_10__[\"SqrtModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('sin_module' == name) {\r\n            return new _module_sinModule__WEBPACK_IMPORTED_MODULE_9__[\"SinModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('cos_module' == name) {\r\n            return new _module_cosModule__WEBPACK_IMPORTED_MODULE_2__[\"CosModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('tan_module' == name) {\r\n            return new _module_tanModule__WEBPACK_IMPORTED_MODULE_12__[\"TanModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('delay_module' == name) {\r\n            return new _module_delayModule__WEBPACK_IMPORTED_MODULE_3__[\"DelayModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('min_module' == name) {\r\n            return new _module_minModule__WEBPACK_IMPORTED_MODULE_13__[\"MinModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else if ('max_module' == name) {\r\n            return new _module_maxModule__WEBPACK_IMPORTED_MODULE_14__[\"MaxModule\"](x, y, removable, this.image_map.get(name));\r\n        }\r\n        else {\r\n            return null;\r\n        }\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/moduleCreator.ts?");
+
+/***/ }),
+
+/***/ "./src/recentLoader.ts":
+/*!*****************************!*\
+  !*** ./src/recentLoader.ts ***!
+  \*****************************/
+/*! exports provided: RecentLoader */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"RecentLoader\", function() { return RecentLoader; });\nclass RecentLoader {\r\n    constructor() {\r\n        this.limit = 20;\r\n        this.recent_offset = 0;\r\n    }\r\n    get_recent_backward() {\r\n        var recent_offset = this.recent_offset - this.limit >= 0 ? this.recent_offset - this.limit : 0;\r\n        return this.get_recent(recent_offset);\r\n    }\r\n    get_recent_forward() {\r\n        var recent_offset = this.recent_offset + this.limit;\r\n        return this.get_recent(recent_offset);\r\n    }\r\n    get_recent(recent_offset) {\r\n        var json_send_str = JSON.stringify({ limit: this.limit, offset: recent_offset });\r\n        var request = new XMLHttpRequest();\r\n        request.open('POST', 'recent.cgi', false);\r\n        request.send(json_send_str);\r\n        if (request.status == 200) {\r\n            if (request.response.length > 0) {\r\n                try {\r\n                    var json_obj = JSON.parse(request.response);\r\n                    var key_arr = json_obj.recent_key;\r\n                    var date_arr = json_obj.recent_date;\r\n                    if (key_arr.length > 0) {\r\n                        var recent_select = [];\r\n                        for (var i = 0; i < key_arr.length; i++) {\r\n                            recent_select.push({ html: (recent_offset + i + 1).toString() + ' | ' + date_arr[i] + ' | #' + key_arr[i], value: key_arr[i] });\r\n                        }\r\n                        var recent_range = (recent_offset + 1).toString() + '-' + (recent_offset + key_arr.length).toString();\r\n                        this.recent_offset = recent_offset;\r\n                        return { recent_select: recent_select, recent_range: recent_range };\r\n                    }\r\n                }\r\n                catch (e) {\r\n                }\r\n            }\r\n        }\r\n        return null;\r\n    }\r\n}\r\n\r\n\n\n//# sourceURL=webpack:///./src/recentLoader.ts?");
+
+/***/ })
+
+/******/ });

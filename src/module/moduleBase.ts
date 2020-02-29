@@ -1,5 +1,5 @@
-import {Input} from "../io/input.js"
-import {Output} from "../io/output.js"
+import {Input} from "../io/input"
+import {Output} from "../io/output"
 
 /**
  * module base.
