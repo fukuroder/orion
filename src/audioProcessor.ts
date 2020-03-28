@@ -56,7 +56,7 @@ class AudioProcessor{
      * 音声処理.
      * @param e
      */
-    private audio_process = (e:any) => {
+    private audio_process = (e:AudioProcessingEvent) => {
         // Output取得
         var output1_arr:Float32Array = e.outputBuffer.getChannelData(0);
         var output2_arr:Float32Array = e.outputBuffer.getChannelData(1);

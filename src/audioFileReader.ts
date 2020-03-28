@@ -27,13 +27,13 @@ class AudioFileReader{
      * wav/oggファイルロード完了後の処理.
      * @param loaded_evt ロード完了イベント
      */
-    private loadFinished = (loaded_evt:any) => {
+    private loadFinished = (loaded_evt:ProgressEvent<FileReader>) => {
         // AudioContext作成
         var audio_context:AudioContext = new AudioContext();
 
         // wav/oggデコード
         audio_context.decodeAudioData(
-            loaded_evt.target.result,
+            loaded_evt.target!.result as ArrayBuffer,
             this.decodeFinished,
             this.decodeError);
     }
