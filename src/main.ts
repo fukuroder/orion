@@ -1068,7 +1068,6 @@ class Main {
         //------
         // MIDI
         //------
-        var navigator = window.navigator as any;
         if (navigator.requestMIDIAccess){
             navigator.requestMIDIAccess().then( Main.onMIDIInit );
         }
@@ -1504,12 +1503,12 @@ class Main {
      * MIDI初期化
      * @param m
      */
-    private static onMIDIInit(m:any):void {
+    private static onMIDIInit(m:WebMidi.MIDIAccess):void {
         var it = m.inputs.values();
         var o = it.next();
         while ( o.done == false )
         {
-            document.getElementById('text_midi_in_device')!.textContent = o.value.name;
+            document.getElementById('text_midi_in_device')!.textContent = o.value.name!;
             o.value.onmidimessage = Main.onmidimessage;
             o = it.next();
         }
@@ -1519,7 +1518,7 @@ class Main {
      * MIDIメッセージ受信時の処理
      * @param e
      */
-    private static onmidimessage(e:any) {
+    private static onmidimessage(e:WebMidi.MIDIMessageEvent) {
         Main._text_midi_msg.textContent =
             '0x' + e.data[0].toString(16)
             + ' 0x' + e.data[1].toString(16)
