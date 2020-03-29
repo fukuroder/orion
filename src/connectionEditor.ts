@@ -153,8 +153,8 @@ class ConnectionEditor{
      * モジュールドラッグ終了.
      * @param offset
      */
-    public end_module_drag(offset:any):void {
-        this.drag_module!.move( offset.x - this.drag_module_offset_x, offset.y - this.drag_module_offset_y);
+    public end_module_drag(offset:number[]):void {
+        this.drag_module!.move( offset[0] - this.drag_module_offset_x, offset[1] - this.drag_module_offset_y);
     }
 
     /**
@@ -315,7 +315,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getConnectedInput(offset:any):Input | null{
+    public getConnectedInput(offset:number[]):Input | null{
         // Module
         for( var module of this._module_arr){
             // Output
@@ -323,7 +323,7 @@ class ConnectionEditor{
                 // Output先のInput
                 for( var next_input of output.next_input_arr ){
                     var p = next_input.get_point();
-                    if( this.squareDistance(p.x, p.y, offset.x, offset.y) < this.tol*this.tol ){
+                    if( this.squareDistance(p.x, p.y, offset[0], offset[1]) < this.tol*this.tol ){
                         return next_input;
                     }
                 }
@@ -338,7 +338,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getConnectedInputQuickBus(offset:any, module_arr:ModuleBase[], tol:number):Input|null{
+    public getConnectedInputQuickBus(offset:number[], module_arr:ModuleBase[], tol:number):Input|null{
         // Module
         for( var module of module_arr ){
             // Output
@@ -346,7 +346,7 @@ class ConnectionEditor{
                 // Output先のInput(QuickBus)
                 for( var next_input of output.quick_bus_next_input_arr ){
                     var p = next_input.get_point();
-                    if( this.squareDistance(p.x, p.y, offset.x, offset.y) < tol*tol ){
+                    if( this.squareDistance(p.x, p.y, offset[0], offset[1]) < tol*tol ){
                         return next_input;
                     }
                 }
@@ -361,7 +361,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getHitModuleOutput( offset:any ):Output|null{
+    public getHitModuleOutput( offset:number[] ):Output|null{
         for( var m of this._module_arr ){
 
             //---------------------------------
@@ -384,7 +384,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getHitModuleInput( offset:any ):Input|null{
+    public getHitModuleInput( offset:number[] ):Input|null{
         for( var m of this._module_arr ){
 
             //--------------------------------
@@ -407,7 +407,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getHitModule( offset:any ):ModuleBase|null{
+    public getHitModule( offset:number[] ):ModuleBase|null{
         for( var m of this._module_arr ){
 
             //----------------------------
@@ -429,7 +429,7 @@ class ConnectionEditor{
      * @param module_arr
      * @param tol
      */
-    public getHitModule2222( offset:any ):ModuleBase|null{
+    public getHitModule2222( offset:number[] ):ModuleBase|null{
         for( var m of this._original_module_arr ){
 
             //----------------------------

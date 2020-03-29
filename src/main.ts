@@ -241,13 +241,13 @@ class Main {
      * @param e TODO:
      * @return
      */
-    private static getOffset(e:MouseEvent){
+    private static getOffset(e:MouseEvent):number[]{
         var target = e.target as HTMLElement;
 
         //----------------------------------
         // FirefoxはOffsetX,OffsetYが未定義
         //----------------------------------
-        return {x:e.pageX-target.offsetLeft, y:e.pageY-target.offsetTop};
+        return [e.pageX-target.offsetLeft, e.pageY-target.offsetTop];
     }
 
     /**
@@ -545,7 +545,7 @@ class Main {
         Main._moved = false;
 
         // キャンバス左上基準の座標を取得する
-        var offset = Main.getOffset(e);
+        var offset:number[] = Main.getOffset(e);
 
         // 接続済みコネクタ干渉チェック
         var connected_input:Input|null = Main._canvas.getConnectedInput( offset );
@@ -600,13 +600,13 @@ class Main {
                         Main._canvas._module_arr.push(module);
 
                         // ドラッグ位置を保持
-                        Main._canvas.start_module_drag(module, offset.x, offset.y);
+                        Main._canvas.start_module_drag(module, offset[0], offset[1]);
                     }
                     else{
                         var original_module:ModuleBase|null = Main._canvas.getHitModule2222( offset );
                         if( original_module != null ){
                             // ドラッグ位置を保持
-                            Main._canvas.start_module_drag(original_module, offset.x, offset.y);
+                            Main._canvas.start_module_drag(original_module, offset[0], offset[1]);
                         }
                     }
                 }
@@ -627,7 +627,7 @@ class Main {
         }
 
         // キャンバス左上基準の座標を取得する
-        var offset = Main.getOffset(e);
+        var offset:number[] = Main.getOffset(e);
 
         if( Main._canvas.is_cable_dragging() == false && Main._canvas.drag_module == null ){
             return;
@@ -638,7 +638,7 @@ class Main {
             // ケーブルドラッグ中の場合
             //--------------------------
             var p = Main._canvas.get_cable_point()!;
-            Main._moved = Main._moved || (Main.squareDistance(p.x, p.y, offset.x, offset.y) >= 10*10);
+            Main._moved = Main._moved || (Main.squareDistance(p.x, p.y, offset[0], offset[1]) >= 10*10);
         }
         else if(Main._canvas.drag_module != null){
             //----------------------------
@@ -672,7 +672,7 @@ class Main {
         if( Main._canvas.is_cable_dragging() ){
             // 編集中ケーブルを描画
             var p = Main._canvas.get_cable_point();
-            Main._canvas.drawLine(p.x, p.y, offset.x, offset.y);
+            Main._canvas.drawLine(p.x, p.y, offset[0], offset[1]);
         }
     }
 

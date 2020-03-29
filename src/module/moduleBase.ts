@@ -299,13 +299,13 @@ class ModuleBase {
      * @param offset
      * @param tol
      */
-    public hit_test_with_input(offset:any, tol:number):number{
+    public hit_test_with_input(offset:number[], tol:number):number{
         if( this.input_arr.length > 0 ){
             var point_x:number = this.x;
             var interval_h:number = this.h / this.input_arr.length;
             for( var i = 0; i<this.input_arr.length; i++ ){
                 var point_y:number = Math.round( this.y + (i + 0.5) * interval_h);
-                if( this.squareDistance(point_x, point_y, offset.x, offset.y) < tol*tol ){
+                if( this.squareDistance(point_x, point_y, offset[0], offset[1]) < tol*tol ){
                     return i;
                 }
             }
@@ -318,13 +318,13 @@ class ModuleBase {
      * @param offset
      * @param tol
      */
-    public hit_test_with_output(offset:any, tol:number):number{
+    public hit_test_with_output(offset:number[], tol:number):number{
         if( this.output_arr.length > 0 ){
             var point_x:number = this.x + this.w;
             var interval_h:number = this.h / this.output_arr.length;
             for( var i=0; i<this.output_arr.length; i++ ){
                 var point_y:number = Math.round(this.y + (i + 0.5) * interval_h);
-                if( this.squareDistance(point_x, point_y, offset.x, offset.y) < tol*tol ){
+                if( this.squareDistance(point_x, point_y, offset[0], offset[1]) < tol*tol ){
                     return i;
                 }
             }
@@ -336,9 +336,9 @@ class ModuleBase {
      * モジュール本体干渉チェック.
      * @param offset
      */
-    public hit_test_with_main(offset:any):boolean{
-        if( this.x <= offset.x && offset.x <= this.x + this.w &&
-            this.y <= offset.y && offset.y <= this.y + this.h ){
+    public hit_test_with_main(offset:number[]):boolean{
+        if( this.x <= offset[0] && offset[0] <= this.x + this.w &&
+            this.y <= offset[1] && offset[1] <= this.y + this.h ){
             return true;
         }
         else{
