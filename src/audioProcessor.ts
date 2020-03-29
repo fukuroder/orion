@@ -34,7 +34,7 @@ class AudioProcessor{
     /**
      * 異常終了時の処理.
      */
-    private abnormal_end:any;
+    private abnormal_end:()=>void;
 
     /**
      * TODO.
@@ -46,7 +46,7 @@ class AudioProcessor{
      * @param audio_context
      * @param abnormal_end
      */
-    public constructor(canvas:ConnectionEditor, abnormal_end:any) {
+    public constructor(canvas:ConnectionEditor, abnormal_end:()=>void) {
         this.canvas = canvas;
         this.audio_context = new AudioContext();
         this.abnormal_end = abnormal_end;
