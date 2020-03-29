@@ -534,7 +534,7 @@ class Main {
      *
      * @param e
      */
-    private static mousedown(e:any):void{
+    private static mousedown(e:MouseEvent):void{
         if( e.button != 0 ){
             //-----------------------------
             // 右ボタン(0)以外は何もしない
@@ -620,7 +620,7 @@ class Main {
      *
      * @param e
      */
-    private static mousemove(e:any):void{
+    private static mousemove(e:MouseEvent):void{
         if( Main._display_prompt == true ){
             // プロンプト表示時は何もしない（Firefox対応）
             return;
@@ -680,7 +680,7 @@ class Main {
      *
      * @param e
      */
-    private static mouseup(e:any):void{
+    private static mouseup(e:MouseEvent):void{
         var offset = Main.getOffset(e);
         Main.Modified();
         if( Main._canvas.is_cable_dragging() ){
@@ -803,7 +803,7 @@ class Main {
      *
      * @param e
      */
-    private static mouseout(e:any):void{
+    private static mouseout(e:MouseEvent):void{
         if( Main._display_prompt == true ){
             return;// プロンプト表示時は何もしない（Firefox対応）
         }
@@ -978,7 +978,7 @@ class Main {
      * @param buffer
      * @return
      */
-    private static decodeFinished(buffer:any):boolean{
+    private static decodeFinished(buffer:AudioBuffer):boolean{
         // set decoded buffer
         Main._decodedBuffer = buffer;
 
@@ -994,7 +994,7 @@ class Main {
      *
      * @param e
      */
-    private static wave_file_change(e:any):void{
+    private static wave_file_change(e:Event):void{
         // 再生ボタンを非活動にする
         Main._wave_play.setAttribute('disabled', 'disabled');
         Main._wave_save.setAttribute('disabled', 'disabled');
