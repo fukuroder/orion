@@ -179,21 +179,15 @@ class ModuleBase {
         var order:ModuleBase[] = [];
         var update = this.input_arr.every(input=>input.constant || input.stream_updated); // 空もtrue
         if ( update == true) {
-
             order.push(this);
 
             //-----------------------------------------
             // 全Inputが準備OKならばOutputを更新する
             //-----------------------------------------
-            //this.evaluate();
 
             // Output先のモジュールを更新する
             for( var output of this.output_arr ){
                 for( var next_input of output.next_input_arr ){
-                    // Output値をInput値に設定
-                    //next_input.value1 = output.value1;
-                    //next_input.value2 = output.value2;
-
                     // stream updateに更新する
                     next_input.stream_updated = true;
 
@@ -203,10 +197,6 @@ class ModuleBase {
 
                 // QuickBus
                 for( var next_input of output.quick_bus_next_input_arr ){
-                    // Output値をInput値に設定
-                    //next_input.value1 = output.value1;
-                    //next_input.value2 = output.value2;
-
                     // stream updateに更新する
                     next_input.stream_updated = true;
 
