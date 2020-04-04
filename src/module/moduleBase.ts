@@ -128,10 +128,11 @@ class ModuleBase {
 
         // Output先のモジュールを更新する
         for ( var output of this.output_arr ) {
-            // ケーブル接続
+            // Output + QuickBus
+            let next_input_arr = output.next_input_arr.concat(output.quick_bus_next_input_arr);
 
             // 次のInputを取得する
-            for( var next_input of output.next_input_arr ){
+            for( var next_input of next_input_arr ){
 
                 if(is_constant == true){
                     //--------------------------------------
@@ -142,25 +143,6 @@ class ModuleBase {
                 }
 
                 // Inputの定数フラグを更新する（Outputと同じものを設定）
-                next_input.constant = is_constant;
-
-                // 次のmoduleの更新（再帰）
-                next_input.module.constant_update(false/*初回以降*/);
-            }
-
-            // QuickBus接続
-
-            // 次のInputを取得する
-            for( var next_input of output.quick_bus_next_input_arr ){
-                if(is_constant == true){
-                    //--------------------------------------
-                    // 自分が順OKなら次のInputの値を更新する
-                    //--------------------------------------
-                    next_input.value1 = output.value1;
-                    next_input.value2 = output.value2;
-                }
-
-                // Inputの定数フラグを更新する
                 next_input.constant = is_constant;
 
                 // 次のmoduleの更新（再帰）
@@ -187,16 +169,10 @@ class ModuleBase {
 
             // Output先のモジュールを更新する
             for( var output of this.output_arr ){
-                for( var next_input of output.next_input_arr ){
-                    // stream updateに更新する
-                    next_input.stream_updated = true;
+                // Output + QuickBus
+                let next_input_arr = output.next_input_arr.concat(output.quick_bus_next_input_arr);
 
-                    // 再帰呼出
-                    order = order.concat(next_input.module.stream_update());
-                }
-
-                // QuickBus
-                for( var next_input of output.quick_bus_next_input_arr ){
+                for( var next_input of next_input_arr ){
                     // stream updateに更新する
                     next_input.stream_updated = true;
 
@@ -233,20 +209,12 @@ class ModuleBase {
         }
 
         for( var output of this.output_arr ){
-            // ケーブル接続
-            for( var next_input of output.next_input_arr ){
-                // ループチェック（再帰）
-                var loop = next_input.module.isLoop(prev_module);
-                if( loop == true ){
-                    //---------------------------------------
-                    // prev_moduleに到達したのでチェック終了
-                    //---------------------------------------
-                    return true;
-                }
-            }
 
-            // QuickBus接続
-            for( var next_input of output.quick_bus_next_input_arr ){
+            // Output + QuickBus
+            let next_input_arr = output.next_input_arr.concat(output.quick_bus_next_input_arr);
+
+            // ケーブル接続
+            for( var next_input of next_input_arr ){
                 // ループチェック（再帰）
                 var loop = next_input.module.isLoop(prev_module);
                 if( loop == true ){

@@ -54,14 +54,10 @@ class AudioWriter{
 
                 // Output先のモジュールを更新する
                 for( var o of m.output_arr ){
-                    for( var next_input of o.next_input_arr ){
-                        // Output値をInput値に設定
-                        next_input.value1 = o.value1;
-                        next_input.value2 = o.value2;
-                    }
+                    // Output & QuickBus
+                    let next_input_arr = o.next_input_arr.concat(o.quick_bus_next_input_arr);
 
-                    // QuickBus
-                    for( var next_input of o.quick_bus_next_input_arr ){
+                    for( var next_input of next_input_arr ){
                         // Output値をInput値に設定
                         next_input.value1 = o.value1;
                         next_input.value2 = o.value2;

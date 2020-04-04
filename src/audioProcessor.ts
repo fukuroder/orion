@@ -80,14 +80,10 @@ class AudioProcessor{
 
                     // Output先のモジュールを更新する
                     for( var output of m.output_arr ){
-                        for( var next_input of output.next_input_arr ){
-                            // Output値をInput値に設定
-                            next_input.value1 = output.value1;
-                            next_input.value2 = output.value2;
-                        }
+                        // Output & QuickBus
+                        let next_input_arr = output.next_input_arr.concat(output.quick_bus_next_input_arr);
 
-                        // QuickBus
-                        for( var next_input of output.quick_bus_next_input_arr ){
+                        for( var next_input of  next_input_arr){
                             // Output値をInput値に設定
                             next_input.value1 = output.value1;
                             next_input.value2 = output.value2;

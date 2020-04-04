@@ -486,7 +486,12 @@ class ConnectionEditor{
         }
     }
 
+    /**
+     * TODO
+     */
     public calc_module_order(){
+
+        // stream_updateをクリア
         for( var module of this._module_arr ){
             for( var input of module.input_arr ){
                 input.stream_updated = false;

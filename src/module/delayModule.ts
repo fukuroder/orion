@@ -54,14 +54,10 @@ class DelayModule extends ModuleBase {
         // Output先のモジュールを更新する
         var order:ModuleBase[] = [this];
         for ( var output of this.output_arr ) {
-            // Output
-            for( var next_input of output.next_input_arr ){
-                next_input.stream_updated = true;
-                order = order.concat(next_input.module.stream_update());
-            }
+            // Output & QuickBus
+            let next_input_arr = output.next_input_arr.concat(output.quick_bus_next_input_arr);
 
-            // Output(QuickBus)
-            for( var next_input of output.quick_bus_next_input_arr ){
+            for( var next_input of next_input_arr ){
                 next_input.stream_updated = true;
                 order = order.concat(next_input.module.stream_update());
             }
