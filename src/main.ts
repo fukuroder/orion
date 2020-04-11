@@ -926,7 +926,6 @@ class Main {
                 if ( m.name == 'samplerate_module' )
                 {
                     // 再生時サンプリングレートに再取得
-
                     m.output_arr[0].value1 = Main._audio_context.sampleRate;
                     m.output_arr[0].value2 = Main._audio_context.sampleRate;
                     m.constant_update(true);

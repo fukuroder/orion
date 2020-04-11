@@ -50,11 +50,6 @@ class ConnectionEditor{
     /**
      * TODO.
      */
-    private canvas:HTMLCanvasElement;
-
-    /**
-     * TODO.
-     */
     private rendering_context:CanvasRenderingContext2D;
 
     /**
@@ -100,7 +95,6 @@ class ConnectionEditor{
      * @param canvas
      */
     public constructor(canvas:HTMLCanvasElement){
-        this.canvas = canvas;
         this.rendering_context = canvas.getContext("2d")!;
         this.canvas_height = canvas.height;
         this.canvae_width = canvas.width;
