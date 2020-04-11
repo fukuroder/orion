@@ -112,8 +112,8 @@ class JsonConverter{
         //------
         // 配線
         //------
-        for( var module_index=0; module_index<loaded_data.module_info.length; module_index++ ){
-            var m = loaded_data.module_info[module_index];
+        for( var module_index=0; module_index<module_info.length; module_index++ ){
+            var m = module_info[module_index];
 
             for( var input_index=0; input_index<m.inputs.length; input_index++ ){
                 var input = m.inputs[input_index];
